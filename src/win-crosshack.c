@@ -1,3 +1,6 @@
+// These functions are taken from MinGW-w64.
+// In theory, they have been released into the public domain.
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
