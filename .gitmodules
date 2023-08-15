@@ -1,3 +1,0 @@
-[submodule "deps/nats.c"]
-	path = deps/nats.c
-	url = https://github.com/nats-io/nats.c.git
