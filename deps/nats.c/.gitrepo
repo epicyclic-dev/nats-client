@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/ingydotnet/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/nats-io/nats.c.git
+	branch = v3.6.1
+	commit = 66cec7fce9a64f911015f0c516a086c1a74cd22a
+	parent = 5bc936a09f065123793cfc741a08d2129f691d48
+	method = merge
+	cmdver = 0.4.6
