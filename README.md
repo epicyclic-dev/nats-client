@@ -10,6 +10,10 @@ There are three main goals:
 
 Right now, in service of goal 3, the underlying C library is built without certain features (notably, without TLS support and without streaming support) because those features require wrangling some complex transitive dependencies (OpenSSL and Protocol Buffers, respectively). Solving this limitation is somewhere on the roadmap, but it's not high priority.
 
+# Zig Version Support
+
+Since the language is still under active development, any written Zig code is a moving target. The plan is to support Zig `0.11.*` exclusively until the NATS library API has good coverage and is stabilized. At that point, if there are major breaking changes, a maintenance branch will be created, and master will probably move to track Zig master.
+
 # Building
 
 Currently, a demonstration executable can be built in the standard fashion, i.e. by running `zig build`.
