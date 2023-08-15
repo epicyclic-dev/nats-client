@@ -19,20 +19,10 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const tinfo = nats.target_info.target;
-
     const nats_c = nats_build.nats_c_lib(
         b,
         .{ .name = "nats-c", .target = target, .optimize = optimize },
     );
-    switch (tinfo.os.tag) {
-        .windows => {
-            if (tinfo.abi != .msvc) {
-                nats_c.addCSourceFiles(&.{"src/win-crosshack.c"}, &.{"-fno-sanitize=undefined"});
-            }
-        },
-        else => {},
-    }
 
     nats.linkLibrary(nats_c);
     b.installArtifact(nats);

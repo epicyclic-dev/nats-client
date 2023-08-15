@@ -28,9 +28,13 @@ pub fn nats_c_lib(
     // lib.addIncludePath(.{ .path = nats_src_prefix ++ "stan" });
     // lib.addCSourceFiles(&streaming_sources, &.{"-fno-sanitize=undefined"});
 
-    switch (lib.target_info.target.os.tag) {
+    const tinfo = lib.target_info.target;
+    switch (tinfo.os.tag) {
         .windows => {
             lib.addCSourceFiles(&win_sources, &.{"-fno-sanitize=undefined"});
+            if (tinfo.abi != .msvc) {
+                lib.addCSourceFiles(&.{"src/win-crosshack.c"}, &.{"-fno-sanitize=undefined"});
+            }
             lib.defineCMacro("_WIN32", null);
             lib.linkSystemLibrary("Ws2_32");
         },
