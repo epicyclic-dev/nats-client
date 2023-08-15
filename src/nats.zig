@@ -18,84 +18,139 @@ pub const nats_c = @cImport({
     @cInclude("nats/nats.h");
 });
 
-fn onMessage(
-    conn: ?*nats_c.natsConnection,
-    sub: ?*nats_c.natsSubscription,
-    message: ?*nats_c.natsMsg,
-    userdata: ?*anyopaque,
-) callconv(.C) void {
-    _ = sub;
-    defer nats_c.natsMsg_Destroy(message);
+const err_ = @import("./error.zig");
+const con_ = @import("./connection.zig");
+const sub_ = @import("./subscription.zig");
+const msg_ = @import("./message.zig");
 
-    const msgData = nats_c.natsMsg_GetData(message)[0..@intCast(nats_c.natsMsg_GetDataLength(message))];
-    std.debug.print("Received message: {s} - {s}\n", .{ nats_c.natsMsg_GetSubject(message), msgData });
+pub const default_server_url = con_.default_server_url;
+pub const Connection = con_.Connection;
+pub const Subscription = sub_.Subscription;
+pub const Message = msg_.Message;
 
-    if (@as(?[*]const u8, nats_c.natsMsg_GetReply(message))) |reply| {
-        _ = nats_c.natsConnection_PublishString(conn, reply, "salutations");
+const Status = err_.Status;
+pub const Error = err_.Error;
+
+fn onMessage(userdata: *bool, connection: *Connection, subscription: *Subscription, message: *Message) void {
+    _ = subscription;
+
+    std.debug.print("Subject \"{s}\" received message: \"{s}\"\n", .{
+        message.getSubject(),
+        message.getData() orelse "[null]",
+    });
+
+    if (message.getReply()) |reply| {
+        connection.publishString(reply, "salutations") catch @panic("HELP");
     }
 
-    if (@as(?*bool, @ptrCast(userdata))) |signal| {
-        signal.* = true;
-    }
+    userdata.* = true;
 }
 
-pub fn main() void {
-    var conn: ?*nats_c.natsConnection = null;
-    defer nats_c.natsConnection_Destroy(conn);
+pub fn main() !void {
+    const connection = try Connection.connectTo(default_server_url);
+    defer connection.destroy();
 
-    if (nats_c.natsConnection_ConnectTo(&conn, nats_c.NATS_DEFAULT_URL) != nats_c.NATS_OK) {
-        std.debug.print("oh no {s}\n", .{nats_c.NATS_DEFAULT_URL});
-        return;
-    }
-
-    var sub: ?*nats_c.natsSubscription = null;
-    defer nats_c.natsSubscription_Destroy(sub);
     var done = false;
-    if (nats_c.natsConnection_Subscribe(&sub, conn, "channel", onMessage, &done) != nats_c.NATS_OK) {
-        std.debug.print("whops\n", .{});
-        return;
-    }
+    const subscription = try connection.subscribe(bool, "channel", onMessage, &done);
+    defer subscription.destroy();
 
     while (!done) {
-        var reply: ?*nats_c.natsMsg = null;
-        defer nats_c.natsMsg_Destroy(reply);
+        const reply = try connection.requestString("channel", "greetings", 1000);
+        defer reply.destroy();
 
-        if (nats_c.natsConnection_RequestString(&reply, conn, "channel", "whatsup", 1000) != nats_c.NATS_OK) {
-            std.debug.print("geez\n", .{});
-            return;
-        } else if (reply) |message| {
-            const msgData = nats_c.natsMsg_GetData(message)[0..@intCast(nats_c.natsMsg_GetDataLength(message))];
-            std.debug.print("Got reply: {s}\n", .{msgData});
-        }
+        std.debug.print("Reply \"{s}\" got message: {s}\n", .{
+            reply.getSubject(),
+            reply.getData() orelse "[null]",
+        });
     }
 }
 
-// NATS_EXTERN natsStatus nats_Open(int64_t lockSpinCount);
-// NATS_EXTERN const char* nats_GetVersion(void);
-// NATS_EXTERN uint32_t nats_GetVersionNumber(void);
+pub fn getVersion() [:0]const u8 {
+    const verString = nats_c.nats_GetVersion();
+    return std.mem.sliceTo(verString, 0);
+}
 
-// #define nats_CheckCompatibility() nats_CheckCompatibilityImpl(NATS_VERSION_REQUIRED_NUMBER, NATS_VERSION_NUMBER, NATS_VERSION_STRING)
-// NATS_EXTERN bool nats_CheckCompatibilityImpl(uint32_t reqVerNumber, uint32_t verNumber, const char *verString);
+pub fn getVersionNumber() u32 {
+    return nats_c.nats_GetVersionNumber();
+}
 
-// NATS_EXTERN int64_t nats_Now(void);
-// NATS_EXTERN int64_t nats_NowInNanoSeconds(void);
-// NATS_EXTERN void nats_Sleep(int64_t sleepTime);
-// NATS_EXTERN const char* nats_GetLastError(natsStatus *status);
-// NATS_EXTERN natsStatus nats_GetLastErrorStack(char *buffer, size_t bufLen);
-// NATS_EXTERN void nats_PrintLastErrorStack(FILE *file);
-// NATS_EXTERN natsStatus nats_SetMessageDeliveryPoolSize(int max);
-// NATS_EXTERN void nats_ReleaseThreadMemory(void);
+pub fn checkCompatibility() bool {
+    return nats_c.nats_CheckCompatibilityImpl(
+        nats_c.NATS_VERSION_REQUIRED_NUMBER,
+        nats_c.NATS_VERSION_NUMBER,
+        nats_c.NATS_VERSION_STRING,
+    );
+}
+
+pub fn now() i64 {
+    return nats_c.nats_Now();
+}
+
+pub fn nowInNanoSeconds() i64 {
+    return nats_c.nats_NowInNanoSeconds();
+}
+
+pub fn sleep(sleep_time: i64) void {
+    return nats_c.nats_Sleep(sleep_time);
+}
+
+pub fn setMessageDeliveryPoolSize(max: c_int) Error!void {
+    const status = Status.fromInt(nats_c.nats_SetMessageDeliveryPoolSize(max));
+    return status.raise();
+}
+
+pub fn releaseThreadMemory() void {
+    return nats_c.nats_ReleaseThreadMemory();
+}
+
+pub fn init(lock_spin_count: i64) Error!void {
+    const status = Status.fromInt(nats_c.nats_Open(lock_spin_count));
+    return status.raise();
+}
+
+pub fn deinit() void {
+    return nats_c.nats_Close();
+}
+
+pub fn deinitWait(timeout: i64) Error!void {
+    const status = Status.fromInt(nats_c.natsCloseAndWait(timeout));
+    return status.raise();
+}
+
+pub const StatsCounts = struct {
+    messages_in: u64 = 0,
+    bytes_in: u64 = 0,
+    messages_out: u64 = 0,
+    bytes_out: u64 = 0,
+    reconnects: u64 = 0,
+};
+
+pub const Statistics = opaque {
+    pub fn create() Error!*Statistics {
+        var stats: *Statistics = undefined;
+        const status = Status.fromInt(nats_c.natsStatistics_Create(@ptrCast(&stats)));
+        return status.toError() orelse stats;
+    }
+
+    pub fn deinit(self: *Statistics) void {
+        nats_c.natsStatistics_Destroy(@ptrCast(self));
+    }
+
+    pub fn getCounts(self: *Statistics) Error!StatsCounts {
+        var counts: StatsCounts = .{};
+        const status = Status.fromInt(nats_c.natsStatistics_GetCounts)(
+            self,
+            &counts.messages_in,
+            &counts.bytes_in,
+            &counts.messages_out,
+            &counts.bytes_out,
+            &counts.reconnects,
+        );
+        return status.toError() orelse counts;
+    }
+};
 
 // NATS_EXTERN natsStatus nats_Sign(const char *encodedSeed, const char *input, unsigned char **signature, int *signatureLength);
-
-// NATS_EXTERN void nats_Close(void);
-// NATS_EXTERN natsStatus nats_CloseAndWait(int64_t timeout);
-
-// NATS_EXTERN const char* natsStatus_GetText(natsStatus s);
-
-// NATS_EXTERN natsStatus natsStatistics_Create(natsStatistics **newStats);
-// NATS_EXTERN natsStatus natsStatistics_GetCounts(const natsStatistics *stats, uint64_t *inMsgs, uint64_t *inBytes, uint64_t *outMsgs, uint64_t *outBytes, uint64_t *reconnects);
-// NATS_EXTERN void natsStatistics_Destroy(natsStatistics *stats);
 
 // NATS_EXTERN natsStatus natsOptions_Create(natsOptions **newOpts);
 // NATS_EXTERN natsStatus natsOptions_SetURL(natsOptions *opts, const char *url);
@@ -176,47 +231,6 @@ pub fn main() void {
 // NATS_EXTERN const char* stanMsg_GetData(const stanMsg *msg);
 // NATS_EXTERN int stanMsg_GetDataLength(const stanMsg *msg);
 // NATS_EXTERN void stanMsg_Destroy(stanMsg *msg);
-
-// NATS_EXTERN natsStatus natsConnection_Connect(natsConnection **nc, natsOptions *options);
-// NATS_EXTERN void natsConnection_ProcessReadEvent(natsConnection *nc);
-// NATS_EXTERN void natsConnection_ProcessWriteEvent(natsConnection *nc);
-// NATS_EXTERN natsStatus natsConnection_ConnectTo(natsConnection **nc, const char *urls);
-// NATS_EXTERN bool natsConnection_IsClosed(natsConnection *nc);
-// NATS_EXTERN bool natsConnection_IsReconnecting(natsConnection *nc);
-// NATS_EXTERN natsConnStatus natsConnection_Status(natsConnection *nc);
-// NATS_EXTERN int natsConnection_Buffered(natsConnection *nc);
-// NATS_EXTERN natsStatus natsConnection_Flush(natsConnection *nc);
-// NATS_EXTERN natsStatus natsConnection_FlushTimeout(natsConnection *nc, int64_t timeout);
-// NATS_EXTERN int64_t natsConnection_GetMaxPayload(natsConnection *nc);
-// NATS_EXTERN natsStatus natsConnection_GetStats(natsConnection *nc, natsStatistics *stats);
-// NATS_EXTERN natsStatus natsConnection_GetConnectedUrl(natsConnection *nc, char *buffer, size_t bufferSize);
-// NATS_EXTERN natsStatus natsConnection_GetConnectedServerId(natsConnection *nc, char *buffer, size_t bufferSize);
-// NATS_EXTERN natsStatus natsConnection_GetServers(natsConnection *nc, char ***servers, int *count);
-// NATS_EXTERN natsStatus natsConnection_GetDiscoveredServers(natsConnection *nc, char ***servers, int *count);
-// NATS_EXTERN natsStatus natsConnection_GetLastError(natsConnection *nc, const char **lastError);
-// NATS_EXTERN natsStatus natsConnection_GetClientID(natsConnection *nc, uint64_t *cid);
-// NATS_EXTERN natsStatus natsConnection_Drain(natsConnection *nc);
-// NATS_EXTERN natsStatus natsConnection_DrainTimeout(natsConnection *nc, int64_t timeout);
-// NATS_EXTERN natsStatus natsConnection_Sign(natsConnection *nc, const unsigned char *message, int messageLen, unsigned char sig[64]);
-// NATS_EXTERN natsStatus natsConnection_GetClientIP(natsConnection *nc, char **ip);
-// NATS_EXTERN natsStatus natsConnection_GetRTT(natsConnection *nc, int64_t *rtt);
-// NATS_EXTERN natsStatus natsConnection_HasHeaderSupport(natsConnection *nc);
-// NATS_EXTERN void natsConnection_Close(natsConnection *nc);
-// NATS_EXTERN void natsConnection_Destroy(natsConnection *nc);
-// NATS_EXTERN natsStatus natsConnection_Publish(natsConnection *nc, const char *subj, const void *data, int dataLen);
-// NATS_EXTERN natsStatus natsConnection_PublishString(natsConnection *nc, const char *subj, const char *str);
-// NATS_EXTERN natsStatus natsConnection_PublishMsg(natsConnection *nc, natsMsg *msg);
-// NATS_EXTERN natsStatus natsConnection_PublishRequest(natsConnection *nc, const char *subj, const char *reply, const void *data, int dataLen);
-// NATS_EXTERN natsStatus natsConnection_PublishRequestString(natsConnection *nc, const char *subj, const char *reply, const char *str);
-// NATS_EXTERN natsStatus natsConnection_Request(natsMsg **replyMsg, natsConnection *nc, const char *subj, const void *data, int dataLen, int64_t timeout);
-// NATS_EXTERN natsStatus natsConnection_RequestString(natsMsg **replyMsg, natsConnection *nc, const char *subj, const char *str, int64_t timeout);
-// NATS_EXTERN natsStatus natsConnection_RequestMsg(natsMsg **replyMsg, natsConnection *nc,natsMsg *requestMsg, int64_t timeout);
-// NATS_EXTERN natsStatus natsConnection_Subscribe(natsSubscription **sub, natsConnection *nc, const char *subject, natsMsgHandler cb, void *cbClosure);
-// NATS_EXTERN natsStatus natsConnection_SubscribeTimeout(natsSubscription **sub, natsConnection *nc, const char *subject, int64_t timeout, natsMsgHandler cb, void *cbClosure);
-// NATS_EXTERN natsStatus natsConnection_SubscribeSync(natsSubscription **sub, natsConnection *nc, const char *subject);
-// NATS_EXTERN natsStatus natsConnection_QueueSubscribe(natsSubscription **sub, natsConnection *nc, const char *subject, const char *queueGroup, natsMsgHandler cb, void *cbClosure);
-// NATS_EXTERN natsStatus natsConnection_QueueSubscribeTimeout(natsSubscription **sub, natsConnection *nc, const char *subject, const char *queueGroup, int64_t timeout, natsMsgHandler cb, void *cbClosure);
-// NATS_EXTERN natsStatus natsConnection_QueueSubscribeSync(natsSubscription **sub, natsConnection *nc, const char *subject, const char *queueGroup);
 
 // NATS_EXTERN natsStatus natsSubscription_NoDeliveryDelay(natsSubscription *sub);
 // NATS_EXTERN natsStatus natsSubscription_NextMsg(natsMsg **nextMsg, natsSubscription *sub, int64_t timeout);
