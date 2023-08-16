@@ -6,8 +6,8 @@ pub const nats_c = @cImport({
 
 const sub_ = @import("./subscription.zig");
 const Subscription = sub_.Subscription;
-const ThunkCallback = sub_.ThunkCallback;
-const messageThunk = sub_.messageThunk;
+const SubscriptionThunkCallback = sub_.SubscriptionThunkCallback;
+const subscriptionMessageThunk = sub_.subscriptionMessageThunk;
 
 const msg_ = @import("./message.zig");
 const Message = msg_.Message;
@@ -78,7 +78,7 @@ pub const Connection = opaque {
         self: *Connection,
         comptime T: type,
         subject: [:0]const u8,
-        callback: ThunkCallback(T),
+        callback: SubscriptionThunkCallback(T),
         userdata: *T,
     ) Error!*Subscription {
         var sub: *Subscription = undefined;
@@ -86,7 +86,7 @@ pub const Connection = opaque {
             @ptrCast(&sub),
             @ptrCast(self),
             subject,
-            messageThunk(T, callback),
+            subscriptionMessageThunk(T, callback),
             userdata,
         ));
         return status.toError() orelse sub;

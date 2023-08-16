@@ -211,26 +211,3 @@ pub const Statistics = opaque {
 // NATS_EXTERN natsStatus natsInbox_Create(natsInbox **newInbox);
 // NATS_EXTERN void natsInbox_Destroy(natsInbox *inbox);
 // NATS_EXTERN void natsMsgList_Destroy(natsMsgList *list);
-
-// NATS_EXTERN natsStatus natsSubscription_NoDeliveryDelay(natsSubscription *sub);
-// NATS_EXTERN natsStatus natsSubscription_NextMsg(natsMsg **nextMsg, natsSubscription *sub, int64_t timeout);
-// NATS_EXTERN natsStatus natsSubscription_Unsubscribe(natsSubscription *sub);
-// NATS_EXTERN natsStatus natsSubscription_AutoUnsubscribe(natsSubscription *sub, int max);
-// NATS_EXTERN natsStatus natsSubscription_QueuedMsgs(natsSubscription *sub, uint64_t *queuedMsgs);
-// NATS_EXTERN int64_t natsSubscription_GetID(natsSubscription* sub);
-// NATS_EXTERN const char* natsSubscription_GetSubject(natsSubscription* sub);
-// NATS_EXTERN natsStatus natsSubscription_SetPendingLimits(natsSubscription *sub, int msgLimit, int bytesLimit);
-// NATS_EXTERN natsStatus natsSubscription_GetPendingLimits(natsSubscription *sub, int *msgLimit, int *bytesLimit);
-// NATS_EXTERN natsStatus natsSubscription_GetPending(natsSubscription *sub, int *msgs, int *bytes);
-// NATS_EXTERN natsStatus natsSubscription_GetDelivered(natsSubscription *sub, int64_t *msgs);
-// NATS_EXTERN natsStatus natsSubscription_GetDropped(natsSubscription *sub, int64_t *msgs);
-// NATS_EXTERN natsStatus natsSubscription_GetMaxPending(natsSubscription *sub, int *msgs, int *bytes);
-// NATS_EXTERN natsStatus natsSubscription_ClearMaxPending(natsSubscription *sub);
-// NATS_EXTERN natsStatus natsSubscription_GetStats(natsSubscription *sub, int *pendingMsgs, int *pendingBytes, int *maxPendingMsgs, int *maxPendingBytes, int64_t *deliveredMsgs, int64_t *droppedMsgs);
-// NATS_EXTERN bool natsSubscription_IsValid(natsSubscription *sub);
-// NATS_EXTERN natsStatus natsSubscription_Drain(natsSubscription *sub);
-// NATS_EXTERN natsStatus natsSubscription_DrainTimeout(natsSubscription *sub, int64_t timeout);
-// NATS_EXTERN natsStatus natsSubscription_WaitForDrainCompletion(natsSubscription *sub, int64_t timeout);
-// NATS_EXTERN natsStatus natsSubscription_DrainCompletionStatus(natsSubscription *sub);
-// NATS_EXTERN natsStatus natsSubscription_SetOnCompleteCB(natsSubscription *sub, natsOnCompleteCB cb, void *closure);
-// NATS_EXTERN void natsSubscription_Destroy(natsSubscription *sub);
