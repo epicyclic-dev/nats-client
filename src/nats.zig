@@ -113,7 +113,7 @@ pub fn deinit() void {
 }
 
 pub fn deinitWait(timeout: i64) Error!void {
-    const status = Status.fromInt(nats_c.natsCloseAndWait(timeout));
+    const status = Status.fromInt(nats_c.nats_CloseAndWait(timeout));
     return status.raise();
 }
 
