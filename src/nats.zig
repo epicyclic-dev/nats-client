@@ -150,6 +150,10 @@ pub const Statistics = opaque {
     }
 };
 
+test {
+    std.testing.refAllDecls(@This());
+}
+
 // NATS_EXTERN natsStatus nats_Sign(const char *encodedSeed, const char *input, unsigned char **signature, int *signatureLength);
 
 // NATS_EXTERN natsStatus natsOptions_Create(natsOptions **newOpts);
