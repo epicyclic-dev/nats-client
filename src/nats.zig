@@ -212,26 +212,6 @@ pub const Statistics = opaque {
 // NATS_EXTERN void natsInbox_Destroy(natsInbox *inbox);
 // NATS_EXTERN void natsMsgList_Destroy(natsMsgList *list);
 
-// NATS_EXTERN natsStatus natsMsg_Create(natsMsg **newMsg, const char *subj, const char *reply, const char *data, int dataLen);
-// NATS_EXTERN const char* natsMsg_GetSubject(const natsMsg *msg);
-// NATS_EXTERN const char* natsMsg_GetReply(const natsMsg *msg);
-// NATS_EXTERN const char* natsMsg_GetData(const natsMsg *msg);
-// NATS_EXTERN int natsMsg_GetDataLength(const natsMsg *msg);
-// NATS_EXTERN natsStatus natsMsgHeader_Set(natsMsg *msg, const char *key, const char *value);
-// NATS_EXTERN natsStatus natsMsgHeader_Add(natsMsg *msg, const char *key, const char *value);
-// NATS_EXTERN natsStatus natsMsgHeader_Get(natsMsg *msg, const char *key, const char **value);
-// NATS_EXTERN natsStatus natsMsgHeader_Values(natsMsg *msg, const char *key, const char* **values, int *count);
-// NATS_EXTERN natsStatus natsMsgHeader_Keys(natsMsg *msg, const char* **keys, int *count);
-// NATS_EXTERN natsStatus natsMsgHeader_Delete(natsMsg *msg, const char *key);
-// NATS_EXTERN bool natsMsg_IsNoResponders(natsMsg *msg);
-// NATS_EXTERN void natsMsg_Destroy(natsMsg *msg);
-// NATS_EXTERN uint64_t stanMsg_GetSequence(const stanMsg *msg);
-// NATS_EXTERN int64_t stanMsg_GetTimestamp(const stanMsg *msg);
-// NATS_EXTERN bool stanMsg_IsRedelivered(const stanMsg *msg);
-// NATS_EXTERN const char* stanMsg_GetData(const stanMsg *msg);
-// NATS_EXTERN int stanMsg_GetDataLength(const stanMsg *msg);
-// NATS_EXTERN void stanMsg_Destroy(stanMsg *msg);
-
 // NATS_EXTERN natsStatus natsSubscription_NoDeliveryDelay(natsSubscription *sub);
 // NATS_EXTERN natsStatus natsSubscription_NextMsg(natsMsg **nextMsg, natsSubscription *sub, int64_t timeout);
 // NATS_EXTERN natsStatus natsSubscription_Unsubscribe(natsSubscription *sub);
@@ -254,12 +234,3 @@ pub const Statistics = opaque {
 // NATS_EXTERN natsStatus natsSubscription_DrainCompletionStatus(natsSubscription *sub);
 // NATS_EXTERN natsStatus natsSubscription_SetOnCompleteCB(natsSubscription *sub, natsOnCompleteCB cb, void *closure);
 // NATS_EXTERN void natsSubscription_Destroy(natsSubscription *sub);
-
-// NATS_EXTERN natsStatus natsMsg_Ack(natsMsg *msg, jsOptions *opts);
-// NATS_EXTERN natsStatus natsMsg_AckSync(natsMsg *msg, jsOptions *opts, jsErrCode *errCode);
-// NATS_EXTERN natsStatus natsMsg_Nak(natsMsg *msg, jsOptions *opts);
-// NATS_EXTERN natsStatus natsMsg_NakWithDelay(natsMsg *msg, int64_t delay, jsOptions *opts);
-// NATS_EXTERN natsStatus natsMsg_InProgress(natsMsg *msg, jsOptions *opts);
-// NATS_EXTERN natsStatus natsMsg_Term(natsMsg *msg, jsOptions *opts);
-// NATS_EXTERN uint64_t natsMsg_GetSequence(natsMsg *msg);
-// NATS_EXTERN int64_t natsMsg_GetTime(natsMsg *msg);
