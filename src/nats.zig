@@ -112,6 +112,18 @@ pub fn deinit() void {
     return nats_c.nats_Close();
 }
 
+// the result of this requires manual deallocation unless it is used to provide the
+// signature out-parameter in the natsSignatureHandler callback. Calling it outside of
+// that context seems unlikely, but we should probably provide a deinit function so the
+// user doesn't have to dig around for libc free to deallocate it.
+pub fn sign(encoded_seed: [:0]const u8, input: [:0]const u8) Error![]const u8 {
+    var result: [*]u8 = undefined;
+    var length: c_int = 0;
+    const status = Status.fromInt(nats_c.nats_Sign(encoded_seed.ptr, &input, &length));
+
+    return status.toError() orelse result[0..@intCast(length)];
+}
+
 pub fn deinitWait(timeout: i64) Error!void {
     const status = Status.fromInt(nats_c.nats_CloseAndWait(timeout));
     return status.raise();
@@ -150,11 +162,32 @@ pub const Statistics = opaque {
     }
 };
 
+// This appears to be a jetstream API, but these two endpoints are trivial, so, whoops.
+// I have no clue what this does, since there's basically no
+pub const Inbox = opaque {
+    pub fn create() Error!*Inbox {
+        var self: *Inbox = undefined;
+        const status = Status.fromInt(nats_c.natsInbox_Create(@ptrCast(&self)));
+
+        return status.toError() orelse self;
+    }
+
+    pub fn destroy(self: *Inbox) void {
+        nats_c.natsInbox_Destroy(@ptrCast(self));
+    }
+};
+
+// I think this is also a jetstream API. This function sure does not seem at all useful
+// by itself.
+pub const MessageList = opaque {
+    pub fn destroy(self: *MessageList) void {
+        nats_c.natsMsgList_Destroy(@ptrCast(self));
+    }
+};
+
 test {
     std.testing.refAllDecls(@This());
 }
-
-// NATS_EXTERN natsStatus nats_Sign(const char *encodedSeed, const char *input, unsigned char **signature, int *signatureLength);
 
 // NATS_EXTERN natsStatus natsOptions_Create(natsOptions **newOpts);
 // NATS_EXTERN natsStatus natsOptions_SetURL(natsOptions *opts, const char *url);
@@ -211,7 +244,3 @@ test {
 // NATS_EXTERN natsStatus natsOptions_SetCustomInboxPrefix(natsOptions *opts, const char *inboxPrefix);
 // NATS_EXTERN natsStatus natsOptions_SetMessageBufferPadding(natsOptions *opts, int paddingSize);
 // NATS_EXTERN void natsOptions_Destroy(natsOptions *opts);
-
-// NATS_EXTERN natsStatus natsInbox_Create(natsInbox **newInbox);
-// NATS_EXTERN void natsInbox_Destroy(natsInbox *inbox);
-// NATS_EXTERN void natsMsgList_Destroy(natsMsgList *list);
