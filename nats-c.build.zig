@@ -36,7 +36,7 @@ pub fn nats_c_lib(
                 lib.addCSourceFiles(&.{"src/win-crosshack.c"}, &.{"-fno-sanitize=undefined"});
             }
             lib.defineCMacro("_WIN32", null);
-            lib.linkSystemLibrary("Ws2_32");
+            lib.linkSystemLibrary("ws2_32");
         },
         .macos => {
             lib.addCSourceFiles(&unix_sources, &.{"-fno-sanitize=undefined"});
