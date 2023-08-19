@@ -5,10 +5,14 @@ pub const nats_c = @cImport({
 });
 
 const Connection = @import("./connection.zig").Connection;
+
 const Message = @import("./message.zig").Message;
+
 const err_ = @import("./error.zig");
 const Error = err_.Error;
 const Status = err_.Status;
+
+const thunk = @import("./thunk.zig");
 
 pub const MessageCount = struct {
     messages: c_int = 0,
@@ -154,12 +158,12 @@ pub const Subscription = opaque {
     pub fn setCompletionCallback(
         self: *Subscription,
         comptime T: type,
-        comptime callback: *const CompletionThunkCallback(T),
+        comptime callback: *const thunk.SimpleCallbackThunkSignature(T),
         userdata: *T,
     ) Error!void {
         return Status.fromInt(nats_c.natsSubscription_SetOnCompleteCB(
             @ptrCast(self),
-            completionCallbackThunk(callback),
+            thunk.makeSimpleCallbackThunk(callback),
             userdata,
         )).raise();
     }
@@ -196,23 +200,6 @@ pub fn subscriptionMessageThunk(
             const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
 
             callback(data, connection, subscription, message);
-        }
-    }.thunk;
-}
-
-const BareCompletionCallback = fn (?*anyopaque) callconv(.C) void;
-pub fn CompletionThunkCallback(comptime T: type) type {
-    return fn (*T) void;
-}
-
-pub fn completionCallbackThunk(
-    comptime T: type,
-    comptime callback: *const CompletionThunkCallback(T),
-) *const BareSubscriptionCallback {
-    return struct {
-        fn thunk(userdata: ?*anyopaque) callconv(.C) void {
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
-            callback(data);
         }
     }.thunk;
 }
