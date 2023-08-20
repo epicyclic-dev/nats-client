@@ -22,11 +22,18 @@ const err_ = @import("./error.zig");
 const con_ = @import("./connection.zig");
 const sub_ = @import("./subscription.zig");
 const msg_ = @import("./message.zig");
+const sta_ = @import("./statistics.zig");
 
 pub const default_server_url = con_.default_server_url;
 pub const Connection = con_.Connection;
+pub const ConnectionOptions = con_.ConnectionOptions;
+
 pub const Subscription = sub_.Subscription;
+
 pub const Message = msg_.Message;
+
+pub const Statistics = sta_.Statistics;
+pub const StatsCounts = sta_.StatsCounts;
 
 const Status = err_.Status;
 pub const Error = err_.Error;
@@ -128,39 +135,6 @@ pub fn deinitWait(timeout: i64) Error!void {
     const status = Status.fromInt(nats_c.nats_CloseAndWait(timeout));
     return status.raise();
 }
-
-pub const StatsCounts = struct {
-    messages_in: u64 = 0,
-    bytes_in: u64 = 0,
-    messages_out: u64 = 0,
-    bytes_out: u64 = 0,
-    reconnects: u64 = 0,
-};
-
-pub const Statistics = opaque {
-    pub fn create() Error!*Statistics {
-        var stats: *Statistics = undefined;
-        const status = Status.fromInt(nats_c.natsStatistics_Create(@ptrCast(&stats)));
-        return status.toError() orelse stats;
-    }
-
-    pub fn deinit(self: *Statistics) void {
-        nats_c.natsStatistics_Destroy(@ptrCast(self));
-    }
-
-    pub fn getCounts(self: *Statistics) Error!StatsCounts {
-        var counts: StatsCounts = .{};
-        const status = Status.fromInt(nats_c.natsStatistics_GetCounts)(
-            self,
-            &counts.messages_in,
-            &counts.bytes_in,
-            &counts.messages_out,
-            &counts.bytes_out,
-            &counts.reconnects,
-        );
-        return status.toError() orelse counts;
-    }
-};
 
 // This appears to be a jetstream API, but these two endpoints are trivial, so, whoops.
 // I have no clue what this does, since there's basically no

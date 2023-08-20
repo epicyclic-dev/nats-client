@@ -169,21 +169,21 @@ pub const Subscription = opaque {
     }
 };
 
-const BareSubscriptionCallback = fn (
+const SubscriptionCallback = fn (
     ?*nats_c.natsConnection,
     ?*nats_c.natsSubscription,
     ?*nats_c.natsMsg,
     ?*anyopaque,
 ) callconv(.C) void;
 
-pub fn SubscriptionThunkCallback(comptime T: type) type {
+pub fn SubscriptionCallbackSignature(comptime T: type) type {
     return fn (*T, *Connection, *Subscription, *Message) void;
 }
 
-pub fn subscriptionMessageThunk(
+pub fn makeSubscriptionCallbackThunk(
     comptime T: type,
-    comptime callback: *const SubscriptionThunkCallback(T),
-) *const BareSubscriptionCallback {
+    comptime callback: *const SubscriptionCallbackSignature(T),
+) *const SubscriptionCallback {
     return struct {
         fn thunk(
             conn: ?*nats_c.natsConnection,
