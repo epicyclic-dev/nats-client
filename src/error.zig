@@ -74,6 +74,10 @@ pub const Status = enum(c_int) {
         return @enumFromInt(int);
     }
 
+    pub fn toInt(self: Status) c_uint {
+        return @intFromEnum(self);
+    }
+
     pub fn description(self: Status) [:0]const u8 {
         return std.mem.sliceTo(nats_c.natsStatus_GetText(self), 0);
     }
@@ -162,6 +166,50 @@ pub const Status = enum(c_int) {
             .missed_heartbeat => Error.MissedHeartbeat,
             _ => Error.UnknownError,
         };
+    }
+
+    pub fn fromError(err: ?anyerror) Status {
+        return if (err) |e|
+            switch (e) {
+                Error.ProtocolError => .protocol_error,
+                Error.IoError => .io_error,
+                Error.LineTooLong => .line_too_long,
+                Error.ConnectionClosed => .connection_closed,
+                Error.NoServer => .no_server,
+                Error.StaleConnection => .stale_connection,
+                Error.SecureConnectionWanted => .secure_connection_wanted,
+                Error.SecureConnectionRequired => .secure_connection_required,
+                Error.ConnectionDisconnected => .connection_disconnected,
+                Error.ConnectionAuthFailed => .connection_auth_failed,
+                Error.NotPermitted => .not_permitted,
+                Error.NotFound => .not_found,
+                Error.AddressMissing => .address_missing,
+                Error.InvalidSubject => .invalid_subject,
+                Error.InvalidArg => .invalid_arg,
+                Error.InvalidSubscription => .invalid_subscription,
+                Error.InvalidTimeout => .invalid_timeout,
+                Error.IllegalState => .illegal_state,
+                Error.SlowConsumer => .slow_consumer,
+                Error.MaxPayload => .max_payload,
+                Error.MaxDeliveredMsgs => .max_delivered_msgs,
+                Error.InsufficientBuffer => .insufficient_buffer,
+                Error.NoMemory => .no_memory,
+                Error.SysError => .sys_error,
+                Error.Timeout => .timeout,
+                Error.FailedToInitialize => .failed_to_initialize,
+                Error.NotInitialized => .not_initialized,
+                Error.SslError => .ssl_error,
+                Error.NoServerSupport => .no_server_support,
+                Error.NotYetConnected => .not_yet_connected,
+                Error.Draining => .draining,
+                Error.InvalidQueueName => .invalid_queue_name,
+                Error.NoResponders => .no_responders,
+                Error.Mismatch => .mismatch,
+                Error.MissedHeartbeat => .missed_heartbeat,
+                else => .generic_error,
+            }
+        else
+            .okay;
     }
 };
 
