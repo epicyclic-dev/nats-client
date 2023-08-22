@@ -19,31 +19,33 @@ pub fn nats_c_lib(
         .optimize = options.optimize,
     });
 
-    lib.disable_sanitize_c = true;
+    const cflags = [_][]const u8{
+        "-fno-sanitize=undefined",
+    };
 
     lib.linkLibC();
-    lib.addCSourceFiles(&common_sources, &.{"-fno-sanitize=undefined"});
+    lib.addCSourceFiles(&common_sources, &cflags);
     lib.addIncludePath(.{ .path = nats_src_prefix ++ "include" });
     // if building with streaming support
     // lib.addIncludePath(.{ .path = nats_src_prefix ++ "stan" });
-    // lib.addCSourceFiles(&streaming_sources, &.{"-fno-sanitize=undefined"});
+    // lib.addCSourceFiles(&streaming_sources, &cflags);
 
     const tinfo = lib.target_info.target;
     switch (tinfo.os.tag) {
         .windows => {
-            lib.addCSourceFiles(&win_sources, &.{"-fno-sanitize=undefined"});
+            lib.addCSourceFiles(&win_sources, &cflags);
             if (tinfo.abi != .msvc) {
-                lib.addCSourceFiles(&.{"src/win-crosshack.c"}, &.{"-fno-sanitize=undefined"});
+                lib.addCSourceFiles(&.{"src/win-crosshack.c"}, &cflags);
             }
             lib.defineCMacro("_WIN32", null);
             lib.linkSystemLibrary("ws2_32");
         },
         .macos => {
-            lib.addCSourceFiles(&unix_sources, &.{"-fno-sanitize=undefined"});
+            lib.addCSourceFiles(&unix_sources, &cflags);
             lib.defineCMacro("DARWIN", null);
         },
         else => {
-            lib.addCSourceFiles(&unix_sources, &.{"-fno-sanitize=undefined"});
+            lib.addCSourceFiles(&unix_sources, &cflags);
             lib.defineCMacro("_GNU_SOURCE", null);
             lib.defineCMacro("LINUX", null);
             // may need to link pthread and rt. Not sure if those are inluded with linkLibC

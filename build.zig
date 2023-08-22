@@ -8,15 +8,8 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    // const nats = b.addModule("nats", .{
-    //     .source_file = .{ .path = "source/nats.zig" },
-    // });
-
-    const nats = b.addExecutable(.{
-        .name = "nats_test",
-        .root_source_file = .{ .path = "src/nats.zig" },
-        .target = target,
-        .optimize = optimize,
+    const nats = b.addModule("nats", .{
+        .source_file = .{ .path = "src/nats.zig" },
     });
 
     const nats_c = nats_build.nats_c_lib(
@@ -24,18 +17,17 @@ pub fn build(b: *std.Build) void {
         .{ .name = "nats-c", .target = target, .optimize = optimize },
     );
 
-    nats.linkLibrary(nats_c);
-    b.installArtifact(nats);
-
-    const main_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/nats.zig" },
+    const tests = b.addTest(.{
+        .root_source_file = .{ .path = "tests/main.zig" },
         .target = target,
         .optimize = optimize,
     });
 
-    main_tests.linkLibrary(nats_c);
+    tests.addModule("nats", nats);
+    tests.linkLibrary(nats_c);
 
-    const run_main_tests = b.addRunArtifact(main_tests);
+    b.installArtifact(tests);
+    const run_main_tests = b.addRunArtifact(tests);
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&run_main_tests.step);
 }
