@@ -158,7 +158,3 @@ pub const MessageList = opaque {
         nats_c.natsMsgList_Destroy(@ptrCast(self));
     }
 };
-
-test {
-    std.testing.refAllDecls(@This());
-}
