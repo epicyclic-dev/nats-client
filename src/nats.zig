@@ -38,40 +38,6 @@ pub const StatsCounts = sta_.StatsCounts;
 const Status = err_.Status;
 pub const Error = err_.Error;
 
-fn onMessage(userdata: *bool, connection: *Connection, subscription: *Subscription, message: *Message) void {
-    _ = subscription;
-
-    std.debug.print("Subject \"{s}\" received message: \"{s}\"\n", .{
-        message.getSubject(),
-        message.getData() orelse "[null]",
-    });
-
-    if (message.getReply()) |reply| {
-        connection.publishString(reply, "salutations") catch @panic("HELP");
-    }
-
-    userdata.* = true;
-}
-
-pub fn main() !void {
-    const connection = try Connection.connectTo(default_server_url);
-    defer connection.destroy();
-
-    var done = false;
-    const subscription = try connection.subscribe(bool, "channel", onMessage, &done);
-    defer subscription.destroy();
-
-    while (!done) {
-        const reply = try connection.requestString("channel", "greetings", 1000);
-        defer reply.destroy();
-
-        std.debug.print("Reply \"{s}\" got message: {s}\n", .{
-            reply.getSubject(),
-            reply.getData() orelse "[null]",
-        });
-    }
-}
-
 pub fn getVersion() [:0]const u8 {
     const verString = nats_c.nats_GetVersion();
     return std.mem.sliceTo(verString, 0);
