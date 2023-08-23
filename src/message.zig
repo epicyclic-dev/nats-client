@@ -45,36 +45,39 @@ pub const Message = opaque {
         return @intCast(nats_c.natsMsg_GetDataLength(@ptrCast(self)));
     }
 
-    pub fn setHeaderValue(self: *Message, key: [:0]const u8, value: ?[:0]const u8) Error!void {
+    pub fn setHeaderValue(self: *Message, key: [:0]const u8, value: [:0]const u8) Error!void {
         const status = Status.fromInt(nats_c.natsMsgHeader_Set(@ptrCast(self), key.ptr, value.ptr));
         return status.raise();
     }
 
-    pub fn addHeaderValue(self: *Message, key: [:0]const u8, value: ?[:0]const u8) Error!void {
+    pub fn addHeaderValue(self: *Message, key: [:0]const u8, value: [:0]const u8) Error!void {
         const status = Status.fromInt(nats_c.natsMsgHeader_Add(@ptrCast(self), key.ptr, value.ptr));
         return status.raise();
     }
 
-    pub fn getHeaderValue(self: *Message, key: [:0]const u8) Error!?[:0]const u8 {
-        var value: ?[*]u8 = null;
+    pub fn getHeaderValue(self: *Message, key: [:0]const u8) Error![:0]const u8 {
+        var value: ?[*:0]u8 = null;
         const status = Status.fromInt(nats_c.natsMsgHeader_Get(@ptrCast(self), key.ptr, &value));
 
-        return status.toError() orelse if (value) |val| std.mem.sliceTo(u8, val, 0) else null;
+        return status.toError() orelse std.mem.sliceTo(value.?, 0);
     }
 
-    pub fn getAllHeaderValues(self: *Message, key: [:0]const u8) Error![]?[*]const u8 {
-        var values: [*]?[*]const u8 = undefined;
+    pub fn getAllHeaderValues(self: *Message, key: [:0]const u8) Error![][*:0]const u8 {
+        var values: [*c][*c]const u8 = undefined;
         var count: c_int = 0;
 
         const status = Status.fromInt(nats_c.natsMsgHeader_Values(@ptrCast(self), key.ptr, &values, &count));
 
         // the user must use std.mem.spanTo on each item they want to read to get a
         // slice, since we can't do that automatically without having to allocate.
-        return status.toError() orelse values[0..@intCast(count)];
+        return status.toError() orelse blk: {
+            const coerced: [*][*:0]const u8 = @ptrFromInt(@intFromPtr(values));
+            break :blk coerced[0..@intCast(count)];
+        };
     }
 
-    pub fn getAllHeaderKeys(self: *Message) Error![][*]const u8 {
-        var keys: [*][*]const u8 = undefined;
+    pub fn getAllHeaderKeys(self: *Message) Error![][*:0]const u8 {
+        var keys: [*c][*c]const u8 = undefined;
         var count: c_int = 0;
 
         const status = Status.fromInt(nats_c.natsMsgHeader_Keys(@ptrCast(self), &keys, &count));
@@ -83,7 +86,45 @@ pub const Message = opaque {
 
         // the user must use std.mem.spanTo on each item they want to read to get a
         // slice, since we can't do that automatically without having to allocate.
-        return status.toError() orelse keys[0..@intCast(count)];
+        // the returned slice
+        return status.toError() orelse blk: {
+            const coerced: [*][*:0]const u8 = @ptrFromInt(@intFromPtr(keys));
+            break :blk coerced[0..@intCast(count)];
+        };
+    }
+
+    pub const HeaderIterator = struct {
+        message: *Message,
+        keys: [][*:0]const u8,
+        index: usize = 0,
+
+        pub fn destroy(self: *HeaderIterator) void {
+            std.heap.raw_c_allocator.free(self.keys);
+        }
+
+        pub fn next(self: *HeaderIterator) Error!?struct { key: [:0]const u8, value: ?[:0]const u8 } {
+            if (self.index >= self.keys.len) return null;
+            defer self.index += 1;
+
+            const sliced = std.mem.sliceTo(self.keys[self.index], 0);
+            return .{
+                .key = sliced,
+                .value = try self.message.getHeaderValue(sliced),
+            };
+        }
+
+        pub fn nextKey(self: *HeaderIterator) ?[:0]const u8 {
+            if (self.index >= self.keys.len) return null;
+            defer self.index += 1;
+            return std.mem.sliceTo(self.keys[self.index], 0);
+        }
+    };
+
+    pub fn headerIterator(self: *Message) Error!HeaderIterator {
+        return .{
+            .message = self,
+            .keys = try self.getAllHeaderKeys(),
+        };
     }
 
     pub fn deleteHeader(self: *Message, key: [:0]const u8) Error!void {
