@@ -53,6 +53,7 @@ const Example = struct {
 
 const examples = [_]Example{
     .{ .name = "request_reply", .file = "examples/request_reply.zig" },
+    .{ .name = "headers", .file = "examples/headers.zig" },
 };
 
 pub fn add_examples(b: *std.build, options: ExampleOptions) void {
