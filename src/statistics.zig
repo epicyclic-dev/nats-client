@@ -29,14 +29,14 @@ pub const Statistics = opaque {
 
     pub fn getCounts(self: *Statistics) Error!StatsCounts {
         var counts: StatsCounts = .{};
-        const status = Status.fromInt(nats_c.natsStatistics_GetCounts)(
-            self,
+        const status = Status.fromInt(nats_c.natsStatistics_GetCounts(
+            @ptrCast(self),
             &counts.messages_in,
             &counts.bytes_in,
             &counts.messages_out,
             &counts.bytes_out,
             &counts.reconnects,
-        );
+        ));
         return status.toError() orelse counts;
     }
 };
