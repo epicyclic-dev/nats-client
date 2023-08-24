@@ -35,7 +35,7 @@ pub const Message = msg_.Message;
 pub const Statistics = sta_.Statistics;
 pub const StatsCounts = sta_.StatsCounts;
 
-const Status = err_.Status;
+pub const Status = err_.Status;
 pub const Error = err_.Error;
 
 pub fn getVersion() [:0]const u8 {
