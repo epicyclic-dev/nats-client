@@ -15,7 +15,7 @@ fn onMessage(
     });
 
     if (message.getReply()) |reply| {
-        connection.publishString(reply, "salutations") catch @panic("HELP");
+        connection.publish(reply, "salutations") catch @panic("HELP");
     }
 
     userdata.* = true;
@@ -30,7 +30,7 @@ pub fn main() !void {
     defer subscription.destroy();
 
     while (!done) {
-        const reply = try connection.requestString("channel", "greetings", 1000);
+        const reply = try connection.request("channel", "greetings", 1000);
         defer reply.destroy();
 
         std.debug.print("Reply \"{s}\" got message: {s}\n", .{

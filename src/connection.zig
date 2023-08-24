@@ -244,16 +244,6 @@ pub const Connection = opaque {
         ).raise();
     }
 
-    pub fn publishString(
-        self: *Connection,
-        subject: [:0]const u8,
-        message: [:0]const u8,
-    ) Error!void {
-        return Status.fromInt(
-            nats_c.natsConnection_PublishString(@ptrCast(self), subject.ptr, message.ptr),
-        ).raise();
-    }
-
     pub fn publishMessage(self: *Connection, message: *Message) Error!void {
         return Status.fromInt(
             nats_c.natsConnection_PublishMsg(@ptrCast(self), @ptrCast(message)),
@@ -277,22 +267,6 @@ pub const Connection = opaque {
         ).raise();
     }
 
-    pub fn publishRequestString(
-        self: *Connection,
-        subject: [:0]const u8,
-        reply: [:0]const u8,
-        message: [:0]const u8,
-    ) Error!void {
-        return Status.fromInt(
-            nats_c.natsConnection_PublishRequestString(
-                @ptrCast(self),
-                subject.ptr,
-                reply.ptr,
-                message.ptr,
-            ),
-        ).raise();
-    }
-
     pub fn request(
         self: *Connection,
         subject: [:0]const u8,
@@ -307,25 +281,6 @@ pub const Connection = opaque {
             subject.ptr,
             req.ptr,
             @intCast(req.len),
-            timeout,
-        ));
-
-        return status.toError() orelse response;
-    }
-
-    pub fn requestString(
-        self: *Connection,
-        subject: [:0]const u8,
-        req: [:0]const u8,
-        timeout: i64,
-    ) Error!*Message {
-        var response: *Message = undefined;
-
-        const status = Status.fromInt(nats_c.natsConnection_RequestString(
-            @ptrCast(&response),
-            @ptrCast(self),
-            subject.ptr,
-            req.ptr,
             timeout,
         ));
 
