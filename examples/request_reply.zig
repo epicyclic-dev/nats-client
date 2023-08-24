@@ -38,4 +38,10 @@ pub fn main() !void {
             reply.getData() orelse "[null]",
         });
     }
+
+    const stats = try connection.getStats();
+    std.debug.print(
+        "Server stats => {{\n\tmessages_in: {d} ({d} B),\n\tmessages_out: {d} ({d} B),\n\treconnects: {d}\n}}\n",
+        .{ stats.messages_in, stats.bytes_in, stats.messages_out, stats.bytes_out, stats.reconnects },
+    );
 }
