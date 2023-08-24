@@ -76,6 +76,10 @@ pub const Message = opaque {
         };
     }
 
+    pub fn getHeaderValueIterator(self: *Message, key: [:0]const u8) Error!HeaderValueIterator {
+        return .{ .values = try self.getAllHeaderValues(key) };
+    }
+
     pub fn getAllHeaderKeys(self: *Message) Error![][*:0]const u8 {
         var keys: [*c][*c]const u8 = undefined;
         var count: c_int = 0;
@@ -93,23 +97,56 @@ pub const Message = opaque {
         };
     }
 
+    pub const HeaderValueIterator = struct {
+        values: [][*:0]const u8,
+        index: usize = 0,
+
+        pub fn destroy(self: HeaderValueIterator) void {
+            std.heap.raw_c_allocator.free(self.values);
+        }
+
+        pub fn next(self: *HeaderValueIterator) ?[:0]const u8 {
+            if (self.index >= self.values.len) return null;
+            defer self.index += 1;
+
+            return std.mem.sliceTo(self.values[self.index], 0);
+        }
+    };
+
     pub const HeaderIterator = struct {
         message: *Message,
         keys: [][*:0]const u8,
         index: usize = 0,
 
+        pub const ValueResolver = struct {
+            message: *Message,
+            key: [:0]const u8,
+
+            pub fn getValue(self: ValueResolver) Error![:0]const u8 {
+                // TODO: if we didn't care about the lifecycle of self.message, we
+                // could do catch unreachable here and make this error-free
+                return try self.message.getHeaderValue(self.key);
+            }
+
+            pub fn getValueIterator(self: ValueResolver) Error!HeaderValueIterator {
+                return .{
+                    .values = try self.message.getAllHeaderValues(self.key),
+                };
+            }
+        };
+
         pub fn destroy(self: *HeaderIterator) void {
             std.heap.raw_c_allocator.free(self.keys);
         }
 
-        pub fn next(self: *HeaderIterator) Error!?struct { key: [:0]const u8, value: ?[:0]const u8 } {
+        pub fn next(self: *HeaderIterator) ?ValueResolver {
             if (self.index >= self.keys.len) return null;
             defer self.index += 1;
 
             const sliced = std.mem.sliceTo(self.keys[self.index], 0);
             return .{
+                .message = self.message,
                 .key = sliced,
-                .value = try self.message.getHeaderValue(sliced),
             };
         }
 

@@ -15,14 +15,20 @@ pub fn main() !void {
 
     try message.deleteHeader("My-Key3");
 
-    var iter = try message.headerIterator();
-    defer iter.destroy();
+    {
+        var iter = try message.headerIterator();
+        defer iter.destroy();
 
-    while (try iter.next()) |pair| {
-        std.debug.print(
-            "Key: '{s}', Value: '{s}'\n",
-            .{ pair.key, pair.value orelse "null" },
-        );
+        while (iter.next()) |resolv| {
+            var val_iter = try resolv.getValueIterator();
+            defer val_iter.destroy();
+
+            std.debug.print("key '{s}' got: ", .{resolv.key});
+            while (val_iter.next()) |value| {
+                std.debug.print("'{s}', ", .{value});
+            }
+            std.debug.print("\n", .{});
+        }
     }
 
     const subscription = try connection.subscribeSync("subject");
@@ -33,13 +39,12 @@ pub fn main() !void {
     defer received.destroy();
 
     {
-        const vals1 = try received.getAllHeaderValues("My-Key1");
-        defer std.heap.raw_c_allocator.free(vals1);
-        std.debug.print("For key 'My-Key1' got: ", .{});
-        for (vals1) |value| {
-            const val = std.mem.sliceTo(value, 0);
+        var iter = try received.getHeaderValueIterator("My-Key1");
+        defer iter.destroy();
 
-            std.debug.print("'{s}', ", .{val});
+        std.debug.print("For key 'My-Key1' got: ", .{});
+        while (iter.next()) |value| {
+            std.debug.print("'{s}', ", .{value});
         }
         std.debug.print("\n", .{});
     }
