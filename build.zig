@@ -64,7 +64,7 @@ pub fn add_examples(b: *std.build, options: ExampleOptions) void {
             .name = example.name,
             .root_source_file = .{ .path = example.file },
             .target = options.target,
-            .optimize = options.optimize,
+            .optimize = .Debug,
         });
 
         ex_exe.addModule("nats", options.nats_module);
