@@ -16,7 +16,7 @@ pub fn makeSimpleCallbackThunk(
 ) *const SimpleCallback {
     return struct {
         fn thunk(userdata: ?*anyopaque) callconv(.C) void {
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
+            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
             callback(data);
         }
     }.thunk;

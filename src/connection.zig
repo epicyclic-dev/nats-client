@@ -893,7 +893,7 @@ pub fn makeConnectionCallbackThunk(
     return struct {
         fn thunk(conn: ?*nats_c.natsConnection, userdata: ?*anyopaque) callconv(.C) void {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
+            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
             callback(connection, data);
         }
     }.thunk;
@@ -916,7 +916,7 @@ pub fn makeReconnectDelayCallbackThunk(
             userdata: ?*anyopaque,
         ) callconv(.C) i64 {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
+            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
             return callback(connection, attempts, data);
         }
     }.thunk;
@@ -946,7 +946,7 @@ pub fn makeErrorHandlerCallbackThunk(
         ) callconv(.C) void {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
             const subscription: *Subscription = if (sub) |s| @ptrCast(s) else unreachable;
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
+            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
 
             callback(connection, subscription, Status.fromInt(status), data);
         }
@@ -1005,7 +1005,7 @@ pub fn makeEventLoopAddRemoveCallbackThunk(
             userdata: ?*anyopaque,
         ) callconv(.C) nats_c.natsStatus {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
+            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
             callback(connection, attempts, data) catch |err|
                 return Status.fromError(err).toInt();
 
@@ -1028,7 +1028,7 @@ pub fn makeEventLoopDetachCallbackThunk(
         fn thunk(
             userdata: ?*anyopaque,
         ) callconv(.C) nats_c.natsStatus {
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
+            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
             callback(data) catch |err| return Status.fromError(err).toInt();
             return nats_c.NATS_OK;
         }
@@ -1058,7 +1058,7 @@ pub fn makeJwtHandlerCallbackThunk(
             err_out: *?[*:0]u8,
             userdata: ?*anyopaque,
         ) callconv(.C) nats_c.natsStatus {
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
+            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
 
             switch (callback(data)) {
                 .jwt => |jwt| {
@@ -1099,7 +1099,7 @@ pub fn makeSignatureHandlerCallbackThunk(
             nonce: [*:0]const u8,
             userdata: ?*anyopaque,
         ) callconv(.C) nats_c.natsStatus {
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
+            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
 
             switch (callback(std.mem.sliceTo(nonce, 0), data)) {
                 .signature => |sig| {

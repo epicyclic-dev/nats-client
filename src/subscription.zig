@@ -197,7 +197,7 @@ pub fn makeSubscriptionCallbackThunk(
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
             const subscription: *Subscription = if (sub) |s| @ptrCast(s) else unreachable;
 
-            const data: *T = if (userdata) |u| @ptrCast(u) else unreachable;
+            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
 
             callback(data, connection, subscription, message);
         }
