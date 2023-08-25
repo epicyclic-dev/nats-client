@@ -2,7 +2,7 @@ const std = @import("std");
 const nats = @import("nats");
 
 fn onMessage(
-    userdata: *bool,
+    userdata: *u32,
     connection: *nats.Connection,
     subscription: *nats.Subscription,
     message: *nats.Message,
@@ -18,18 +18,18 @@ fn onMessage(
         connection.publish(reply, "salutations") catch @panic("HELP");
     }
 
-    userdata.* = true;
+    userdata.* += 1;
 }
 
 pub fn main() !void {
     const connection = try nats.Connection.connectTo(nats.default_server_url);
     defer connection.destroy();
 
-    var done = false;
-    const subscription = try connection.subscribe(bool, "channel", onMessage, &done);
+    var count: u32 = 0;
+    const subscription = try connection.subscribe(u32, "channel", onMessage, &count);
     defer subscription.destroy();
 
-    while (!done) {
+    while (count < 10) : (nats.sleep(1000)) {
         const reply = try connection.request("channel", "greetings", 1000);
         defer reply.destroy();
 
