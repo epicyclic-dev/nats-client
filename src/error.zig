@@ -12,7 +12,7 @@ pub const ErrorInfo = struct {
 };
 
 pub fn getLastError() ErrorInfo {
-    const status: c_uint = 0;
+    var status: c_uint = 0;
     const desc = nats_c.nats_GetLastError(&status);
 
     return .{
@@ -21,8 +21,8 @@ pub fn getLastError() ErrorInfo {
     };
 }
 
-pub fn getLastErrorStack(buffer: []u8) Error!void {
-    const status = Status.fromInt(nats_c.getLastErrorStack(buffer.ptr, buffer.len));
+pub fn getLastErrorStack(buffer: *[]u8) Error!void {
+    const status = Status.fromInt(nats_c.nats_GetLastErrorStack(buffer.ptr, buffer.len));
     return status.raise();
 }
 

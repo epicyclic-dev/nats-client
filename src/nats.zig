@@ -35,6 +35,9 @@ pub const Message = msg_.Message;
 pub const Statistics = sta_.Statistics;
 pub const StatsCounts = sta_.StatsCounts;
 
+pub const ErrorInfo = err_.ErrorInfo;
+pub const getLastError = err_.getLastError;
+pub const getLastErrorStack = err_.getLastErrorStack;
 pub const Status = err_.Status;
 pub const Error = err_.Error;
 
@@ -59,7 +62,7 @@ pub fn now() i64 {
     return nats_c.nats_Now();
 }
 
-pub fn nowInNanoSeconds() i64 {
+pub fn nowInNanoseconds() i64 {
     return nats_c.nats_NowInNanoSeconds();
 }
 
@@ -76,6 +79,8 @@ pub fn releaseThreadMemory() void {
     return nats_c.nats_ReleaseThreadMemory();
 }
 
+pub const default_spin_count: i64 = -1;
+
 pub fn init(lock_spin_count: i64) Error!void {
     const status = Status.fromInt(nats_c.nats_Open(lock_spin_count));
     return status.raise();
@@ -85,40 +90,52 @@ pub fn deinit() void {
     return nats_c.nats_Close();
 }
 
-// the result of this requires manual deallocation unless it is used to provide the
-// signature out-parameter in the natsSignatureHandler callback. Calling it outside of
-// that context seems unlikely, but we should probably provide a deinit function so the
-// user doesn't have to dig around for libc free to deallocate it.
-pub fn sign(encoded_seed: [:0]const u8, input: [:0]const u8) Error![]const u8 {
-    var result: [*]u8 = undefined;
-    var length: c_int = 0;
-    const status = Status.fromInt(nats_c.nats_Sign(encoded_seed.ptr, &input, &length));
-
-    return status.toError() orelse result[0..@intCast(length)];
-}
-
 pub fn deinitWait(timeout: i64) Error!void {
     const status = Status.fromInt(nats_c.nats_CloseAndWait(timeout));
     return status.raise();
 }
 
-// This appears to be a jetstream API, but these two endpoints are trivial, so, whoops.
-// I have no clue what this does, since there's basically no
-pub const Inbox = opaque {
-    pub fn create() Error!*Inbox {
-        var self: *Inbox = undefined;
-        const status = Status.fromInt(nats_c.natsInbox_Create(@ptrCast(&self)));
+// the result of this requires manual deallocation unless it is used to provide the
+// signature out-parameter in the natsSignatureHandler callback. Calling it outside of
+// that context seems unlikely, but we should probably provide a deinit function so the
+// user doesn't have to dig around for libc free to deallocate it.
+pub fn sign(encoded_seed: [:0]const u8, input: [:0]const u8) Error![]const u8 {
+    var result: [*c]u8 = undefined;
+    var length: c_int = 0;
+    const status = Status.fromInt(nats_c.nats_Sign(
+        encoded_seed.ptr,
+        input.ptr,
+        &result,
+        &length,
+    ));
 
-        return status.toError() orelse self;
-    }
+    return status.toError() orelse result[0..@intCast(length)];
+}
 
-    pub fn destroy(self: *Inbox) void {
-        nats_c.natsInbox_Destroy(@ptrCast(self));
-    }
-};
+// Note: an "Inbox" is actually just a string. This API creates a random (unique)
+// string suitable for passing as the `reply` field to Message.create or
+// Connection.publishRequest. The string is owned by the caller and should be freed
+// using `destroyInbox`.
+pub fn createInbox() Error![:0]u8 {
+    var self: [*c]u8 = undefined;
+    const status = Status.fromInt(nats_c.natsInbox_Create(@ptrCast(&self)));
+
+    return status.toError() orelse std.mem.sliceTo(self, 0);
+}
+
+pub fn destroyInbox(inbox: [:0]u8) void {
+    nats_c.natsInbox_Destroy(@ptrCast(inbox.ptr));
+}
 
 // I think this is also a jetstream API. This function sure does not seem at all useful
-// by itself.
+// by itself. Note: for some reason, most of the jetstream data structures are all
+// public, instead of following the opaque handle style that the rest of the library
+// does.
+
+// typedef struct natsMsgList {
+//         natsMsg         **Msgs;
+//         int             Count;
+// } natsMsgList;
 pub const MessageList = opaque {
     pub fn destroy(self: *MessageList) void {
         nats_c.natsMsgList_Destroy(@ptrCast(self));
