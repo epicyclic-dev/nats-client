@@ -19,6 +19,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const tests = b.addTest(.{
+        .name = "nats-zig-unit-tests",
         .root_source_file = .{ .path = "tests/main.zig" },
         .target = target,
         .optimize = optimize,
@@ -29,6 +30,7 @@ pub fn build(b: *std.Build) void {
 
     const run_main_tests = b.addRunArtifact(tests);
     const test_step = b.step("test", "Run tests");
+    test_step.dependOn(&b.addInstallArtifact(tests, .{}).step);
     test_step.dependOn(&run_main_tests.step);
 
     add_examples(b, .{
