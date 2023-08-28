@@ -1,8 +1,6 @@
 const std = @import("std");
-const nats = @import("nats");
 
-// const nats = @import("../src/nats.zig");
-// const message = @import("../src/message.zig");
+const nats = @import("nats");
 
 test "message: create message" {
     const subject = "hello";
@@ -11,7 +9,7 @@ test "message: create message" {
 
     // have to initialize the library so the reference counter can correctly destroy
     // objects, otherwise we segfault on trying to free the memory.
-    try nats.init(-1);
+    try nats.init(nats.default_spin_count);
     defer nats.deinit();
 
     const message = try nats.Message.create(subject, reply, data);
@@ -28,7 +26,7 @@ test "message: create message" {
 }
 
 test "message: get subject" {
-    try nats.init(-1);
+    try nats.init(nats.default_spin_count);
     defer nats.deinit();
 
     const subject = "hello";
@@ -40,7 +38,7 @@ test "message: get subject" {
 }
 
 test "message: get reply" {
-    try nats.init(-1);
+    try nats.init(nats.default_spin_count);
     defer nats.deinit();
 
     const subject = "hello";
