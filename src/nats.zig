@@ -27,6 +27,8 @@ const sta_ = @import("./statistics.zig");
 pub const default_server_url = con_.default_server_url;
 pub const Connection = con_.Connection;
 pub const ConnectionOptions = con_.ConnectionOptions;
+pub const JwtResponseOrError = con_.JwtResponseOrError;
+pub const SignatureResponseOrError = con_.SignatureResponseOrError;
 
 pub const Subscription = sub_.Subscription;
 
