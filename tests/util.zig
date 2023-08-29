@@ -40,7 +40,7 @@ pub const TestServer = struct {
             const auth: [4][]const u8 = switch (options.auth) {
                 .none => .{""} ** 4,
                 .token => |tok| .{ "--auth", tok, "", "" },
-                .password => |auth| .{ "--user", auth.user, "--password", auth.pass },
+                .password => |auth| .{ "--user", auth.user, "--pass", auth.pass },
             };
 
             break :blk executable ++ listen ++ port ++ auth;
@@ -64,6 +64,7 @@ pub const TestServer = struct {
         }
 
         _ = try child.kill();
+        std.debug.print("output: {s}\n", .{poller.fifo(.stderr).buf});
         return error.NoLaunchStringFound;
     }
 
