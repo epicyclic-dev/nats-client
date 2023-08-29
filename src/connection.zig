@@ -883,7 +883,7 @@ const ConnectionOptions = opaque {
 const ConnectionCallback = fn (?*nats_c.natsConnection, ?*anyopaque) callconv(.C) void;
 
 pub fn ConnectionCallbackSignature(comptime T: type) type {
-    return fn (*Connection, *T) void;
+    return fn (*T, *Connection) void;
 }
 
 pub fn makeConnectionCallbackThunk(
@@ -894,7 +894,7 @@ pub fn makeConnectionCallbackThunk(
         fn thunk(conn: ?*nats_c.natsConnection, userdata: ?*anyopaque) callconv(.C) void {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
             const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
-            callback(connection, data);
+            callback(data, connection);
         }
     }.thunk;
 }
@@ -902,7 +902,7 @@ pub fn makeConnectionCallbackThunk(
 const ReconnectDelayCallback = fn (?*nats_c.natsConnection, c_int, ?*anyopaque) i64;
 
 pub fn ReconnectDelayCallbackSignature(comptime T: type) type {
-    return fn (*Connection, c_int, *T) i64;
+    return fn (*T, *Connection, c_int) i64;
 }
 
 pub fn makeReconnectDelayCallbackThunk(
@@ -917,7 +917,7 @@ pub fn makeReconnectDelayCallbackThunk(
         ) callconv(.C) i64 {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
             const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
-            return callback(connection, attempts, data);
+            return callback(data, connection, attempts);
         }
     }.thunk;
 }
@@ -930,7 +930,7 @@ const ErrorHandlerCallback = fn (
 ) void;
 
 pub fn ErrorHandlerCallbackSignature(comptime T: type) type {
-    return fn (*Connection, *Subscription, Status, *T) void;
+    return fn (*T, *Connection, *Subscription, Status) void;
 }
 
 pub fn makeErrorHandlerCallbackThunk(
@@ -948,7 +948,7 @@ pub fn makeErrorHandlerCallbackThunk(
             const subscription: *Subscription = if (sub) |s| @ptrCast(s) else unreachable;
             const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
 
-            callback(connection, subscription, Status.fromInt(status), data);
+            callback(data, connection, subscription, Status.fromInt(status));
         }
     }.thunk;
 }
@@ -991,7 +991,7 @@ pub fn makeAttachEventLoopCallbackThunk(
 const EventLoopAddRemoveCallback = fn (?*nats_c.natsConnection, c_int, ?*anyopaque) nats_c.natsStatus;
 
 pub fn EventLoopAddRemoveCallbackSignature(comptime T: type) type {
-    return fn (*Connection, c_int, *T) anyerror!void;
+    return fn (*T, *Connection, c_int) anyerror!void;
 }
 
 pub fn makeEventLoopAddRemoveCallbackThunk(
@@ -1006,7 +1006,7 @@ pub fn makeEventLoopAddRemoveCallbackThunk(
         ) callconv(.C) nats_c.natsStatus {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
             const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
-            callback(connection, attempts, data) catch |err|
+            callback(data, connection, attempts) catch |err|
                 return Status.fromError(err).toInt();
 
             return nats_c.NATS_OK;
@@ -1084,7 +1084,7 @@ const SignatureResponseOrError = union(enum) {
 };
 
 pub fn SignatureHandlerCallbackSignature(comptime T: type) type {
-    return fn ([:0]const u8, *T) SignatureResponseOrError;
+    return fn (*T, [:0]const u8) SignatureResponseOrError;
 }
 
 pub fn makeSignatureHandlerCallbackThunk(
@@ -1101,7 +1101,7 @@ pub fn makeSignatureHandlerCallbackThunk(
         ) callconv(.C) nats_c.natsStatus {
             const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
 
-            switch (callback(std.mem.sliceTo(nonce, 0), data)) {
+            switch (callback(data, std.mem.sliceTo(nonce, 0))) {
                 .signature => |sig| {
                     sig_out.* = sig.ptr;
                     sig_len_out.* = sig.len;
