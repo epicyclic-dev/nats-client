@@ -1,5 +1,10 @@
 .{
     .name = "nats-client",
     .version = "0.0.1",
-    .dependencies = .{},
+    .dependencies = .{
+        .libressl = .{
+            .url = "https://github.com/epicyclic-dev/LibreSSL-portable/archive/cedfc5580d2e665d66d8f357469e472bc12a099b.tar.gz",
+            .hash = "12204315709cc148a4c51661aa76db76bbe5192fbc762336f405c9069e95c5abf1ec",
+        },
+    },
 }

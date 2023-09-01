@@ -30,6 +30,11 @@ pub fn nats_c_lib(
     // lib.addIncludePath(.{ .path = nats_src_prefix ++ "stan" });
     // lib.addCSourceFiles(&streaming_sources, &cflags);
 
+    const ssl_dep = b.dependency("libressl", .{
+        .target = options.target,
+        .optimize = options.optimize,
+    });
+
     const tinfo = lib.target_info.target;
     switch (tinfo.os.tag) {
         .windows => {
@@ -48,17 +53,22 @@ pub fn nats_c_lib(
             lib.addCSourceFiles(&unix_sources, &cflags);
             lib.defineCMacro("_GNU_SOURCE", null);
             lib.defineCMacro("LINUX", null);
-            // may need to link pthread and rt. Not sure if those are inluded with linkLibC
+            // may need to link pthread and rt. Not sure if those are included with linkLibC
             lib.linkSystemLibrary("pthread");
             lib.linkSystemLibrary("rt");
         },
     }
 
+    lib.defineCMacro("NATS_HAS_TLS", null);
+    lib.defineCMacro("NATS_USE_OPENSSL_1_1", null);
+    lib.defineCMacro("NATS_FORCE_HOST_VERIFICATION", null);
     lib.defineCMacro("_REENTRANT", null);
 
     inline for (install_headers) |header| {
         lib.installHeader(nats_src_prefix ++ header, "nats/" ++ header);
     }
+
+    lib.linkLibrary(ssl_dep.artifact("ssl"));
 
     b.installArtifact(lib);
 
