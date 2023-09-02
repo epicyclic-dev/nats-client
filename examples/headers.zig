@@ -1,3 +1,6 @@
+// This file is licensed under the CC0 1.0 license.
+// See: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
 const std = @import("std");
 const nats = @import("nats");
 
