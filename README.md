@@ -8,17 +8,63 @@ There are three main goals:
   2. Provide a native-feeling Zig client API.
   3. Support cross-compilation to the platforms that Zig supports.
 
-Right now, in service of goal 3, the underlying C library is built without certain features (notably, without TLS support and without streaming support) because those features require wrangling some complex transitive dependencies (OpenSSL and Protocol Buffers, respectively). Solving this limitation is somewhere on the roadmap, but it's not high priority.
+Right now, in service of goal 3, the underlying C library is built without certain features (notably, without streaming support) due to those features requiring managing some transitive dependencies (for streaming, the `protobuf-c` library). Solving this limitation is somewhere on the roadmap, but it's not high priority. `nats.c` is compiled against a copy of LibreSSL that has been wrapped with the zig build system. This appears to work, but it notably is not specifically OpenSSL, so there may be corner cases around encrypted connections.
 
 # Zig Version Support
 
 Since the language is still under active development, any written Zig code is a moving target. The plan is to support Zig `0.11.*` exclusively until the NATS library API has good coverage and is stabilized. At that point, if there are major breaking changes, a maintenance branch will be created, and master will probably move to track Zig master.
 
+# Using
+
+NATS.zig is ready-to-use with the Zig package manager. With Zig 0.11.x, this means you will need to create a `build.zig.zon` and modify your `build.zig` to use the dependency.
+
+### Example `build.zig.zon`
+
+```zig
+.{
+    .name = "my cool project",
+    .version = "0.1.0",
+    .dependencies = .{
+        .nats = .{
+            .url = "https://github.com/epicyclic-dev/nats.zig/archive/<git commit hash>.tar.gz",
+            // on first run, `zig build` will prompt you to add the missing hash.
+            // .hash = "",
+        },
+    },
+}
+```
+
+### Example `build.zig`
+
+```zig
+const std = @import("std");
+
+pub fn build(b: *std.Build) void {
+    const my_program = b.addExecutable(.{
+        .name="cool-project",
+        .root_source_file = .{.path = "my_cool_project.zig"},
+    });
+
+    my_program.addModule(
+        "nats",
+        b.dependency("nats", .{}).module("nats"),
+    );
+
+    b.installArtifact(my_program);
+}
+```
+
 # Building
 
-Currently, a demonstration executable can be built in the standard fashion, i.e. by running `zig build`.
+Some basic example executables can be built using `zig build examples`. These examples expect you to be running a copy of `nats-server` listening for unencrypted connections on `localhost:4222` (the default NATS port).
+
+# Testing
+
+Unit tests can be run using `zig build test`. The unit tests expect an executable named `nats-server` to be in your PATH in order to run properly.
 
 # License
+
+Unless noted otherwise (check file headers), all source code is licensed under the Apache License, Version 2.0 (which is also the `nats.c` license).
 
 ```
 Licensed under the Apache License, Version 2.0 (the "License");
