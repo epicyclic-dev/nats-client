@@ -1,6 +1,6 @@
 # NATS - Zig Client
 
-This is a Zig client library for the [NATS messaging system](https://nats.io). It's currently a thin wrapper over [NATS.c](https://github.com/nats-io/nats.c).
+This is a Zig client library for the [NATS messaging system](https://nats.io). It's currently a thin wrapper over [NATS.c](https://github.com/nats-io/nats.c), which is included and automatically built as part of the package.
 
 There are three main goals:
 
@@ -9,6 +9,16 @@ There are three main goals:
   3. Support cross-compilation to the platforms that Zig supports.
 
 Right now, in service of goal 3, the underlying C library is built without certain features (notably, without streaming support) due to those features requiring managing some transitive dependencies (for streaming, the `protobuf-c` library). Solving this limitation is somewhere on the roadmap, but it's not high priority. `nats.c` is compiled against a copy of LibreSSL that has been wrapped with the zig build system. This appears to work, but it notably is not specifically OpenSSL, so there may be corner cases around encrypted connections.
+
+# Status
+
+All basic `nats.c` APIs are wrapped. The JetStream APIs are not currently wrapped, and the streaming API is not built or wrapped. It is unlikely I will wrap these as I do not require them for my primary use case. Contributions on this front are welcome.
+
+In theory, all wrapped APIs are referenced in unit tests so that they are at least checked to compile correctly. The unit tests do not do much in the way of behavioral testing, under the assumption that the underlying C library is well tested. However, there may be some gaps in the test coverage around less-common APIs.
+
+The standard workflows around publishing and subscribing to messages seem to work well and feel (in my opinion) sufficiently Zig-like. Some of the APIs use getter/setter functions more heavily than I think a native Zig implementation would due to the fact that the underlying C library is designed with a very clean opaque handle API style.
+
+Only tagged release versions of `nats.c` will be used. The current version of `nats.c` being used is `3.6.1`.
 
 # Zig Version Support
 
