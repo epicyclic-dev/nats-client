@@ -5,56 +5,113 @@ const std = @import("std");
 
 const nats = @import("nats");
 
-test "message: create message" {
-    const subject = "hello";
-    const reply = "reply";
-    const data = "world";
+const util = @import("./util.zig");
+
+test "nats.Message" {
+    const message_subject: [:0]const u8 = "hello";
+    const message_reply: [:0]const u8 = "reply";
+    const message_data: [:0]const u8 = "world";
 
     // have to initialize the library so the reference counter can correctly destroy
     // objects, otherwise we segfault on trying to free the memory.
     try nats.init(nats.default_spin_count);
     defer nats.deinit();
 
-    const message = try nats.Message.create(subject, reply, data);
+    {
+        const message = try nats.Message.create(message_subject, null, message_data);
+        defer message.destroy();
+    }
+
+    {
+        const message = try nats.Message.create(message_subject, message_reply, null);
+        defer message.destroy();
+    }
+
+    {
+        const message = try nats.Message.create(message_subject, null, null);
+        defer message.destroy();
+    }
+
+    const message = try nats.Message.create(message_subject, message_reply, message_data);
     defer message.destroy();
 
-    const message2 = try nats.Message.create(subject, null, data);
-    defer message2.destroy();
+    const subject = message.getSubject();
+    try std.testing.expectEqualStrings(message_subject, subject);
 
-    const message3 = try nats.Message.create(subject, data, null);
-    defer message3.destroy();
+    const reply = message.getReply() orelse return error.TestUnexpectedResult;
+    try std.testing.expectEqualStrings(message_reply, reply);
 
-    const message4 = try nats.Message.create(subject, null, null);
-    defer message4.destroy();
+    const data = message.getData() orelse return error.TestUnexpectedResult;
+    try std.testing.expectEqualStrings(message_data, data);
+
+    try std.testing.expectEqual(message_data.len, message.getDataLength());
+
+    const message_header: [:0]const u8 = "foo";
+    const message_hvalues: []const [:0]const u8 = &.{ "bar", "baz" };
+    try message.setHeaderValue(message_header, message_hvalues[0]);
+
+    try std.testing.expectEqualStrings(message_hvalues[0], try message.getHeaderValue(message_header));
+    try message.addHeaderValue(message_header, message_hvalues[1]);
+    try std.testing.expectEqualStrings(message_hvalues[0], try message.getHeaderValue(message_header));
+
+    {
+        var idx: usize = 0;
+        var val_iter = try message.getHeaderValueIterator(message_header);
+        defer val_iter.destroy();
+
+        while (val_iter.next()) |value| : (idx += 1) {
+            try std.testing.expect(idx < message_hvalues.len);
+            try std.testing.expectEqualStrings(message_hvalues[idx], value);
+        }
+    }
+
+    {
+        var header_iter = try message.getHeaderIterator();
+        defer header_iter.destroy();
+
+        while (header_iter.next()) |header| {
+            try std.testing.expectEqualStrings(message_header, header.key);
+            try std.testing.expectEqualStrings(message_hvalues[0], try header.value());
+
+            var idx: usize = 0;
+            var val_iter = try header.valueIterator();
+            defer val_iter.destroy();
+
+            while (val_iter.next()) |value| : (idx += 1) {
+                try std.testing.expect(idx < message_hvalues.len);
+                try std.testing.expectEqualStrings(message_hvalues[idx], value);
+            }
+
+            try std.testing.expect(val_iter.peek() == null);
+        }
+        try std.testing.expect(header_iter.peek() == null);
+    }
+
+    try message.deleteHeader(message_header);
+    _ = message.isNoResponders();
 }
 
-test "message: get subject" {
+test "send nats.Message" {
+    var server = try util.TestServer.launch(.{});
+    defer server.stop();
+
     try nats.init(nats.default_spin_count);
     defer nats.deinit();
 
-    const subject = "hello";
-    const message = try nats.Message.create(subject, null, null);
+    const connection = try nats.Connection.connectTo(nats.default_server_url);
+    defer connection.destroy();
+
+    const message_subject: [:0]const u8 = "hello";
+    const message_reply: [:0]const u8 = "reply";
+    const message_data: [:0]const u8 = "world";
+    const message_header: [:0]const u8 = "foo";
+    const message_hvalues: []const [:0]const u8 = &.{ "bar", "baz" };
+
+    const message = try nats.Message.create(message_subject, message_reply, message_data);
     defer message.destroy();
 
-    const received = message.getSubject();
-    try std.testing.expectEqualStrings(subject, received);
-}
+    try message.setHeaderValue(message_header, message_hvalues[0]);
+    try message.addHeaderValue(message_header, message_hvalues[1]);
 
-test "message: get reply" {
-    try nats.init(nats.default_spin_count);
-    defer nats.deinit();
-
-    const subject = "hello";
-    const reply = "reply";
-    const message = try nats.Message.create(subject, reply, null);
-    defer message.destroy();
-
-    const received = message.getReply() orelse return error.TestUnexpectedResult;
-    try std.testing.expectEqualStrings(reply, received);
-
-    const message2 = try nats.Message.create(subject, null, null);
-    defer message2.destroy();
-
-    const received2 = message2.getReply();
-    try std.testing.expect(received2 == null);
+    try connection.publishMessage(message);
 }
