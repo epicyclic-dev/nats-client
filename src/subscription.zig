@@ -28,19 +28,19 @@ const Status = err_.Status;
 
 const thunk = @import("./thunk.zig");
 
-pub const MessageCount = struct {
-    messages: c_int = 0,
-    bytes: c_int = 0,
-};
-
-pub const SubscriptionStats = struct {
-    pending: MessageCount = .{},
-    max_pending: MessageCount = .{},
-    delivered_messages: i64 = 0,
-    dropped_messages: i64 = 0,
-};
-
 pub const Subscription = opaque {
+    pub const MessageCount = struct {
+        messages: c_int = 0,
+        bytes: c_int = 0,
+    };
+
+    pub const SubscriptionStats = struct {
+        pending: MessageCount = .{},
+        max_pending: MessageCount = .{},
+        delivered_messages: i64 = 0,
+        dropped_messages: i64 = 0,
+    };
+
     pub fn isValid(self: *Subscription) bool {
         return nats_c.natsSubscription_IsValid(@ptrCast(self));
     }
@@ -84,7 +84,7 @@ pub const Subscription = opaque {
         // invalid/closed subscriptions return null. should we convert that into an
         // error? could return error.InvalidSubscription
         const result = nats_c.natsSubscription_GetSubject(@ptrCast(self)) orelse return null;
-        return std.mem.spanTo(u8, result, 0);
+        return std.mem.sliceTo(result, 0);
     }
 
     pub fn setPendingLimits(self: *Subscription, limit: MessageCount) Error!void {

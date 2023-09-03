@@ -423,7 +423,7 @@ pub const Connection = opaque {
     ) Error!*Subscription {
         var sub: *Subscription = undefined;
 
-        const status = Status.fromInt(nats_c.natsConnection_QueueSubscribe(
+        const status = Status.fromInt(nats_c.natsConnection_QueueSubscribeTimeout(
             @ptrCast(&sub),
             @ptrCast(self),
             subject.ptr,
@@ -443,7 +443,7 @@ pub const Connection = opaque {
     ) Error!*Subscription {
         var sub: *Subscription = undefined;
 
-        const status = Status.fromInt(nats_c.natsConnection_SubscribeSync(
+        const status = Status.fromInt(nats_c.natsConnection_QueueSubscribeSync(
             @ptrCast(&sub),
             @ptrCast(self),
             subject.ptr,
