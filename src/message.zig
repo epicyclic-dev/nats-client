@@ -76,102 +76,11 @@ pub const Message = opaque {
         return status.toError() orelse std.mem.sliceTo(value.?, 0);
     }
 
-    pub fn getAllHeaderValues(self: *Message, key: [:0]const u8) Error![][*:0]const u8 {
-        var values: [*c][*c]const u8 = undefined;
-        var count: c_int = 0;
-
-        const status = Status.fromInt(nats_c.natsMsgHeader_Values(@ptrCast(self), key.ptr, &values, &count));
-
-        // the user must use std.mem.spanTo on each item they want to read to get a
-        // slice, since we can't do that automatically without having to allocate.
-        return status.toError() orelse blk: {
-            const coerced: [*][*:0]const u8 = @ptrFromInt(@intFromPtr(values));
-            break :blk coerced[0..@intCast(count)];
-        };
-    }
-
     pub fn getHeaderValueIterator(self: *Message, key: [:0]const u8) Error!HeaderValueIterator {
         return .{ .values = try self.getAllHeaderValues(key) };
     }
 
-    pub fn getAllHeaderKeys(self: *Message) Error![][*:0]const u8 {
-        var keys: [*c][*c]const u8 = undefined;
-        var count: c_int = 0;
-
-        const status = Status.fromInt(nats_c.natsMsgHeader_Keys(@ptrCast(self), &keys, &count));
-
-        // TODO: manually assert no keys are NULL?
-
-        // the user must use std.mem.spanTo on each item they want to read to get a
-        // slice, since we can't do that automatically without having to allocate.
-        // the returned slice
-        return status.toError() orelse blk: {
-            const coerced: [*][*:0]const u8 = @ptrFromInt(@intFromPtr(keys));
-            break :blk coerced[0..@intCast(count)];
-        };
-    }
-
-    pub const HeaderValueIterator = struct {
-        values: [][*:0]const u8,
-        index: usize = 0,
-
-        pub fn destroy(self: HeaderValueIterator) void {
-            std.heap.raw_c_allocator.free(self.values);
-        }
-
-        pub fn next(self: *HeaderValueIterator) ?[:0]const u8 {
-            if (self.index >= self.values.len) return null;
-            defer self.index += 1;
-
-            return std.mem.sliceTo(self.values[self.index], 0);
-        }
-    };
-
-    pub const HeaderIterator = struct {
-        message: *Message,
-        keys: [][*:0]const u8,
-        index: usize = 0,
-
-        pub const ValueResolver = struct {
-            message: *Message,
-            key: [:0]const u8,
-
-            pub fn getValue(self: ValueResolver) Error![:0]const u8 {
-                // TODO: if we didn't care about the lifecycle of self.message, we
-                // could do catch unreachable here and make this error-free
-                return try self.message.getHeaderValue(self.key);
-            }
-
-            pub fn getValueIterator(self: ValueResolver) Error!HeaderValueIterator {
-                return .{
-                    .values = try self.message.getAllHeaderValues(self.key),
-                };
-            }
-        };
-
-        pub fn destroy(self: *HeaderIterator) void {
-            std.heap.raw_c_allocator.free(self.keys);
-        }
-
-        pub fn next(self: *HeaderIterator) ?ValueResolver {
-            if (self.index >= self.keys.len) return null;
-            defer self.index += 1;
-
-            const sliced = std.mem.sliceTo(self.keys[self.index], 0);
-            return .{
-                .message = self.message,
-                .key = sliced,
-            };
-        }
-
-        pub fn nextKey(self: *HeaderIterator) ?[:0]const u8 {
-            if (self.index >= self.keys.len) return null;
-            defer self.index += 1;
-            return std.mem.sliceTo(self.keys[self.index], 0);
-        }
-    };
-
-    pub fn headerIterator(self: *Message) Error!HeaderIterator {
+    pub fn getHeaderIterator(self: *Message) Error!HeaderIterator {
         return .{
             .message = self,
             .keys = try self.getAllHeaderKeys(),
@@ -186,6 +95,112 @@ pub const Message = opaque {
     pub fn isNoResponders(self: *Message) bool {
         return nats_c.natsMsg_IsNoResponders(@ptrCast(self));
     }
+
+    // prefer using message.getHeaderValueIterator
+    pub fn getAllHeaderValues(self: *Message, key: [:0]const u8) Error![][*:0]const u8 {
+        var values: [*][*:0]const u8 = undefined;
+        var count: c_int = 0;
+
+        const status = Status.fromInt(
+            nats_c.natsMsgHeader_Values(@ptrCast(self), key.ptr, @ptrCast(&values), &count),
+        );
+
+        // the user must use std.mem.spanTo on each item they want to read to get a
+        // slice, since we can't do that automatically without having to allocate.
+        return status.toError() orelse values[0..@intCast(count)];
+    }
+
+    // prefer using message.getHeaderIterator
+    pub fn getAllHeaderKeys(self: *Message) Error![][*:0]const u8 {
+        var keys: [*][*:0]const u8 = undefined;
+        var count: c_int = 0;
+
+        const status = Status.fromInt(nats_c.natsMsgHeader_Keys(@ptrCast(self), @ptrCast(&keys), &count));
+
+        // the user must use std.mem.spanTo on each item they want to read to get a
+        // slice, since we can't do that automatically without having to allocate.
+        // the returned slice
+        return status.toError() orelse keys[0..@intCast(count)];
+    }
+
+    pub const HeaderValueIterator = struct {
+        values: [][*:0]const u8,
+        index: usize = 0,
+
+        pub fn destroy(self: HeaderValueIterator) void {
+            std.heap.raw_c_allocator.free(self.values);
+        }
+
+        pub const deinit = HeaderValueIterator.destroy;
+
+        pub fn next(self: *HeaderValueIterator) ?[:0]const u8 {
+            if (self.index >= self.values.len) return null;
+            defer self.index += 1;
+
+            return std.mem.sliceTo(self.values[self.index], 0);
+        }
+
+        pub fn peek(self: *HeaderValueIterator) ?[:0]const u8 {
+            if (self.index >= self.values.len) return null;
+            return std.mem.sliceTo(self.values[self.index], 0);
+        }
+    };
+
+    pub const HeaderIterator = struct {
+        message: *Message,
+        keys: [][*:0]const u8,
+        index: usize = 0,
+
+        pub const ValueResolver = struct {
+            message: *Message,
+            key: [:0]const u8,
+
+            pub fn value(self: ValueResolver) Error![:0]const u8 {
+                // TODO: if we didn't care about the lifecycle of self.message, we
+                // could do catch unreachable here and make this error-free
+                return try self.message.getHeaderValue(self.key);
+            }
+
+            pub fn valueIterator(self: ValueResolver) Error!HeaderValueIterator {
+                return try self.message.getHeaderValueIterator(self.key);
+            }
+        };
+
+        pub fn destroy(self: *HeaderIterator) void {
+            std.heap.raw_c_allocator.free(self.keys);
+        }
+
+        pub const deinit = HeaderIterator.destroy;
+
+        pub fn next(self: *HeaderIterator) ?ValueResolver {
+            if (self.index >= self.keys.len) return null;
+            defer self.index += 1;
+
+            return .{
+                .message = self.message,
+                .key = std.mem.sliceTo(self.keys[self.index], 0),
+            };
+        }
+
+        pub fn peek(self: *HeaderIterator) ?ValueResolver {
+            if (self.index >= self.keys.len) return null;
+            return .{
+                .message = self.message,
+                .key = std.mem.sliceTo(self.keys[self.index], 0),
+            };
+        }
+
+        pub fn nextKey(self: *HeaderIterator) ?[:0]const u8 {
+            if (self.index >= self.keys.len) return null;
+            defer self.index += 1;
+            return std.mem.sliceTo(self.keys[self.index], 0);
+        }
+
+        pub fn peekKey(self: *HeaderIterator) ?[:0]const u8 {
+            if (self.index >= self.keys.len) return null;
+            return std.mem.sliceTo(self.keys[self.index], 0);
+        }
+    };
 };
 
 // TODO: not implementing jetstream API right now

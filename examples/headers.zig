@@ -11,24 +11,25 @@ pub fn main() !void {
     const message = try nats.Message.create("subject", null, "message");
     defer message.destroy();
 
-    try message.setHeaderValue("My-Key1", "value1");
-    try message.setHeaderValue("My-Key2", "value2");
-    try message.addHeaderValue("My-Key1", "value3");
-    try message.setHeaderValue("My-Key3", "value4");
+    try message.setHeaderValue("foo", "foo-value");
+    try message.setHeaderValue("bar", "bar-value");
+    try message.addHeaderValue("foo", "bar-value");
+    try message.setHeaderValue("baz", "baz-value");
+    try message.addHeaderValue("qux", "qux-value");
 
-    try message.deleteHeader("My-Key3");
+    try message.deleteHeader("baz");
 
     {
-        var iter = try message.headerIterator();
+        var iter = try message.getHeaderIterator();
         defer iter.destroy();
 
-        while (iter.next()) |resolv| {
-            var val_iter = try resolv.getValueIterator();
+        while (iter.next()) |header| {
+            var val_iter = try header.valueIterator();
             defer val_iter.destroy();
 
-            std.debug.print("key '{s}' got: ", .{resolv.key});
+            std.debug.print("key '{s}' got: ", .{header.key});
             while (val_iter.next()) |value| {
-                std.debug.print("'{s}', ", .{value});
+                std.debug.print("'{s}'{s}", .{ value, if (val_iter.peek()) |_| ", " else "" });
             }
             std.debug.print("\n", .{});
         }
@@ -42,12 +43,12 @@ pub fn main() !void {
     defer received.destroy();
 
     {
-        var iter = try received.getHeaderValueIterator("My-Key1");
+        var iter = try received.getHeaderValueIterator("foo");
         defer iter.destroy();
 
-        std.debug.print("For key 'My-Key1' got: ", .{});
+        std.debug.print("For key 'foo' got: ", .{});
         while (iter.next()) |value| {
-            std.debug.print("'{s}', ", .{value});
+            std.debug.print("'{s}'{s}", .{ value, if (iter.peek()) |_| ", " else "" });
         }
         std.debug.print("\n", .{});
     }
