@@ -48,7 +48,55 @@ test "nats.Connection.connectTo" {
 
         const connection = try nats.Connection.connectTo("nats://user:password@127.0.0.1:4222");
         defer connection.destroy();
+        connection.close();
     }
+}
+
+test "nats.Connection" {
+    var server = try util.TestServer.launch(.{});
+    defer server.stop();
+
+    try nats.init(nats.default_spin_count);
+    defer nats.deinit();
+
+    const connection = try nats.Connection.connectTo(nats.default_server_url);
+    defer connection.destroy();
+
+    _ = connection.isClosed();
+    _ = connection.isReconnecting();
+    _ = connection.getStatus();
+    _ = connection.bytesBuffered();
+    try connection.flush();
+    try connection.flushTimeout(100);
+    _ = connection.getMaxPayload();
+    _ = try connection.getStats();
+    {
+        // id is 56 bytes plus terminating zero
+        var buf = [_]u8{0} ** 57;
+        _ = try connection.getConnectedUrl(&buf);
+        _ = try connection.getConnectedServerId(&buf);
+    }
+    {
+        var servers = try connection.getServers();
+        defer servers.deinit();
+
+        var discovered = try connection.getDiscoveredServers();
+        defer discovered.deinit();
+    }
+
+    _ = connection.getLastError();
+    _ = try connection.getClientId();
+    // our connection does not have a JWT, so this call will always fail
+    _ = connection.sign("greetings") catch {};
+    _ = try connection.getLocalIpAndPort();
+    _ = connection.getRtt() catch {};
+    _ = connection.hasHeaderSupport();
+    // this closes the connection, but it does not block until the connection is closed,
+    // which can result in nondeterministic behavior for calls after this one.
+    try connection.drain();
+    // this will return error.ConnectionClosed if the connection is already closed, so
+    // don't expect this to be error free.
+    connection.drainTimeout(1000) catch {};
 }
 
 fn reconnectDelayHandler(userdata: *u32, connection: *nats.Connection, attempts: c_int) i64 {
