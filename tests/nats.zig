@@ -70,7 +70,7 @@ test "misc" {
         // and switch.
         const signed = nats.sign("12345678", "12345678") catch {
             const err = nats.getLastError();
-            std.debug.print("signing failed: {s}\n", .{err.desc});
+            std.debug.print("as expected, signing failed: {s}\n", .{err.desc});
 
             var stackmem = [_]u8{0} ** 512;
             var stackbuf: []u8 = &stackmem;

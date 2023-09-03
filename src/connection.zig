@@ -60,7 +60,7 @@ pub const AddressPort = struct {
 };
 
 pub const Connection = opaque {
-    pub fn create(options: *ConnectionOptions) Error!*Connection {
+    pub fn connect(options: *ConnectionOptions) Error!*Connection {
         var self: *Connection = undefined;
         const status = Status.fromInt(nats_c.natsConnection_Connect(@ptrCast(&self), @ptrCast(options)));
         return status.toError() orelse self;

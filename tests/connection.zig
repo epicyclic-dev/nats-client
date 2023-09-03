@@ -7,6 +7,11 @@ const nats = @import("nats");
 
 const util = @import("./util.zig");
 
+const rsa_key = @embedFile("./data/client-rsa.key");
+const rsa_cert = @embedFile("./data/client-rsa.cert");
+const ecc_key = @embedFile("./data/client-ecc.key");
+const ecc_cert = @embedFile("./data/client-ecc.cert");
+
 test "nats.Connection.connectTo" {
     {
         var server = try util.TestServer.launch(.{});
@@ -44,11 +49,6 @@ test "nats.Connection.connectTo" {
         const connection = try nats.Connection.connectTo("nats://user:password@127.0.0.1:4222");
         defer connection.destroy();
     }
-}
-
-fn tokenHandler(userdata: *u32) [:0]const u8 {
-    _ = userdata;
-    return "token";
 }
 
 fn reconnectDelayHandler(userdata: *u32, connection: *nats.Connection, attempts: c_int) i64 {
@@ -103,19 +103,10 @@ test "nats.ConnectionOptions" {
     try options.setServers(&servers);
     try options.setCredentials("user", "password");
     try options.setToken("test_token");
-    // requires a functioning token handler, which I will not write right now. Also
-    // cannot be called if a token has already been set
-    // try options.setTokenHandler(u32, tokenHandler, &userdata);
     try options.setNoRandomize(false);
     try options.setTimeout(1000);
     try options.setName("name");
 
-    // the following all require a build with openssl
-    // try options.setSecure(false);
-    // try options.setCiphers("-ALL:HIGH");
-    // try options.setCipherSuites("TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256");
-    // try options.setExpectedHostname("host.name");
-    // try options.skipServerVerification(true);
     try options.setVerbose(true);
     try options.setPedantic(true);
     try options.setPingInterval(1000);
@@ -146,4 +137,68 @@ test "nats.ConnectionOptions" {
     try options.disableNoResponders(true);
     try options.setCustomInboxPrefix("_FOOBOX");
     try options.setMessageBufferPadding(123);
+}
+
+fn tokenHandler(userdata: *u32) [:0]const u8 {
+    _ = userdata;
+    return "token";
+}
+
+test "nats.ConnectionOptions (crypto edition)" {
+    try nats.init(nats.default_spin_count);
+    defer nats.deinit();
+
+    const options = try nats.ConnectionOptions.create();
+    defer options.destroy();
+    var userdata: u32 = 0;
+
+    try options.setTokenHandler(u32, tokenHandler, &userdata);
+    try options.setSecure(false);
+    try options.setCertificatesChain(rsa_cert, rsa_key);
+    try options.setCiphers("-ALL:HIGH");
+    try options.setCipherSuites("TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256");
+    try options.setExpectedHostname("test.nats.zig");
+    try options.skipServerVerification(true);
+}
+
+test "nats.ConnectionOptions (crypto connect)" {
+    {
+        var server = try util.TestServer.launch(.{ .tls = .rsa });
+        defer server.stop();
+
+        try nats.init(nats.default_spin_count);
+        defer nats.deinit();
+
+        const options = try nats.ConnectionOptions.create();
+        defer options.destroy();
+
+        try options.setSecure(true);
+        try options.skipServerVerification(true);
+        try options.setCertificatesChain(rsa_cert, rsa_key);
+
+        const connection = try nats.Connection.connect(options);
+        defer connection.destroy();
+
+        try connection.publish("foo", "bar");
+    }
+
+    {
+        var server = try util.TestServer.launch(.{ .tls = .ecc });
+        defer server.stop();
+
+        try nats.init(nats.default_spin_count);
+        defer nats.deinit();
+
+        const options = try nats.ConnectionOptions.create();
+        defer options.destroy();
+
+        try options.setSecure(true);
+        try options.skipServerVerification(true);
+        try options.setCertificatesChain(ecc_cert, ecc_key);
+
+        const connection = try nats.Connection.connect(options);
+        defer connection.destroy();
+
+        try connection.publish("foo", "bar");
+    }
 }
