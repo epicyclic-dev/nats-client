@@ -98,7 +98,7 @@ test "send nats.Message" {
     try nats.init(nats.default_spin_count);
     defer nats.deinit();
 
-    const connection = try nats.Connection.connectTo(nats.default_server_url);
+    const connection = try nats.Connection.connectTo(server.url);
     defer connection.destroy();
 
     const message_subject: [:0]const u8 = "hello";

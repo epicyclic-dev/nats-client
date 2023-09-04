@@ -19,8 +19,10 @@ const TestLaunchError = error{
 };
 
 pub const TestServer = struct {
+    allocator: std.mem.Allocator,
     process: std.ChildProcess,
     key_dir: ?std.testing.TmpDir,
+    url: [:0]u8,
 
     pub const LaunchOptions = struct {
         executable: []const u8 = "nats-server",
@@ -36,6 +38,27 @@ pub const TestServer = struct {
             ecc,
         } = .none,
         allocator: std.mem.Allocator = std.testing.allocator,
+
+        pub fn connectionString(self: LaunchOptions) ![:0]u8 {
+            const authstr: []u8 = switch (self.auth) {
+                // dupe this so we don't have to handle an edge case where it
+                // does not need to be freed
+                .none => try self.allocator.dupe(u8, ""),
+                .token => |tok| try std.fmt.allocPrint(
+                    self.allocator,
+                    "{s}@",
+                    .{tok},
+                ),
+                .password => |auth| try std.fmt.allocPrint(
+                    self.allocator,
+                    "{s}:{s}@",
+                    .{ auth.user, auth.pass },
+                ),
+            };
+            defer self.allocator.free(authstr);
+
+            return try std.fmt.allocPrintZ(self.allocator, "nats://{s}127.0.0.1:{d}", .{ authstr, self.port });
+        }
     };
 
     pub fn launch(options: LaunchOptions) !TestServer {
@@ -45,6 +68,9 @@ pub const TestServer = struct {
         var key_dir: ?std.testing.TmpDir = null;
         var key_path: ?[]const u8 = null;
         var cert_path: ?[]const u8 = null;
+
+        errdefer if (key_dir) |*kd| kd.cleanup();
+
         // ChildProcess copies these, so we can free them before the process has
         // closed.
         defer {
@@ -71,6 +97,8 @@ pub const TestServer = struct {
                     };
 
                     const out_dir = std.testing.tmpDir(.{});
+                    key_dir = out_dir;
+
                     try out_dir.dir.writeFile("server.key", pair.key);
                     try out_dir.dir.writeFile("server.cert", pair.cert);
                     // since testing.tmpDir will actually bury itself in zig-cache/tmp,
@@ -80,7 +108,6 @@ pub const TestServer = struct {
                     const out_key = try out_dir.dir.realpathAlloc(options.allocator, "server.key");
                     const out_cert = try out_dir.dir.realpathAlloc(options.allocator, "server.cert");
 
-                    key_dir = out_dir;
                     key_path = out_key;
                     cert_path = out_cert;
                     break :keyb &[_][]const u8{ "--tls", "--tlscert", out_cert, "--tlskey", out_key };
@@ -107,7 +134,12 @@ pub const TestServer = struct {
 
         while (try poller.poll()) {
             if (std.mem.indexOf(u8, poller.fifo(.stderr).buf, "[INF] Server is ready")) |_| {
-                return .{ .process = child, .key_dir = key_dir };
+                return .{
+                    .allocator = options.allocator,
+                    .process = child,
+                    .key_dir = key_dir,
+                    .url = try options.connectionString(),
+                };
             }
         }
 
@@ -118,6 +150,7 @@ pub const TestServer = struct {
 
     pub fn stop(self: *TestServer) void {
         if (self.key_dir) |*key_dir| key_dir.cleanup();
+        self.allocator.free(self.url);
         _ = self.process.kill() catch return;
     }
 };

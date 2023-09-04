@@ -20,7 +20,7 @@ test "nats.Connection.connectTo" {
         try nats.init(nats.default_spin_count);
         defer nats.deinit();
 
-        const connection = try nats.Connection.connectTo(nats.default_server_url);
+        const connection = try nats.Connection.connectTo(server.url);
         defer connection.destroy();
     }
 
@@ -33,7 +33,7 @@ test "nats.Connection.connectTo" {
         try nats.init(nats.default_spin_count);
         defer nats.deinit();
 
-        const connection = try nats.Connection.connectTo("nats://test_token@127.0.0.1:4222");
+        const connection = try nats.Connection.connectTo(server.url);
         defer connection.destroy();
     }
 
@@ -46,7 +46,7 @@ test "nats.Connection.connectTo" {
         try nats.init(nats.default_spin_count);
         defer nats.deinit();
 
-        const connection = try nats.Connection.connectTo("nats://user:password@127.0.0.1:4222");
+        const connection = try nats.Connection.connectTo(server.url);
         defer connection.destroy();
         connection.close();
     }
@@ -59,7 +59,7 @@ test "nats.Connection" {
     try nats.init(nats.default_spin_count);
     defer nats.deinit();
 
-    const connection = try nats.Connection.connectTo(nats.default_server_url);
+    const connection = try nats.Connection.connectTo(server.url);
     defer connection.destroy();
 
     _ = connection.isClosed();
