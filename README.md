@@ -55,10 +55,10 @@ pub fn build(b: *std.Build) void {
         .root_source_file = .{.path = "my_cool_project.zig"},
     });
 
-    my_program.addModule(
-        "nats",
-        b.dependency("nats", .{}).module("nats"),
-    );
+    const nats_dep = b.dependency("nats", .{});
+
+    my_program.addModule("nats", nats_dep.module("nats"));
+    my_program.linkLibrary(nats_dep.artifact("nats-c"));
 
     b.installArtifact(my_program);
 }
