@@ -5,8 +5,8 @@
 ;
 [subrepo]
 	remote = https://github.com/nats-io/nats.c.git
-	branch = v3.6.1
-	commit = 66cec7fce9a64f911015f0c516a086c1a74cd22a
-	parent = 5bc936a09f065123793cfc741a08d2129f691d48
+	branch = v3.7.0
+	commit = 5d057f66f897279975f1c8eb61c1ccaaf1a7ae01
+	parent = 136ef10775a087317c20d6c78fbb6f5c072d1308
 	method = merge
 	cmdver = 0.4.6
