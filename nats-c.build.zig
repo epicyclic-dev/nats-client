@@ -26,9 +26,12 @@ pub fn nats_c_lib(
     lib.linkLibC();
     lib.addCSourceFiles(&common_sources, &cflags);
     lib.addIncludePath(.{ .path = nats_src_prefix ++ "include" });
-    // if building with streaming support
-    // lib.addIncludePath(.{ .path = nats_src_prefix ++ "stan" });
-    // lib.addCSourceFiles(&streaming_sources, &cflags);
+    // if building with streaming support (protocol.pb-c.c includes
+    // <protobuf-c/protobuf-c.h>, unfortunately)
+    lib.addIncludePath(.{ .path = "deps" });
+    lib.addIncludePath(.{ .path = nats_src_prefix ++ "stan" });
+    lib.addCSourceFiles(&streaming_sources, &cflags);
+    lib.addCSourceFiles(&protobuf_c_sources, &cflags);
 
     const ssl_dep = b.dependency("libressl", .{
         .target = options.target,
@@ -62,6 +65,7 @@ pub fn nats_c_lib(
     lib.defineCMacro("NATS_HAS_TLS", null);
     lib.defineCMacro("NATS_USE_OPENSSL_1_1", null);
     lib.defineCMacro("NATS_FORCE_HOST_VERIFICATION", null);
+    lib.defineCMacro("NATS_HAS_STREAMING", null);
     lib.defineCMacro("_REENTRANT", null);
 
     inline for (install_headers) |header| {
@@ -140,4 +144,8 @@ const streaming_sources = [_][]const u8{
     nats_src_prefix ++ "stan/pub.c",
     nats_src_prefix ++ "stan/sopts.c",
     nats_src_prefix ++ "stan/sub.c",
+};
+
+const protobuf_c_sources = [_][]const u8{
+    "deps/protobuf-c/protobuf-c.c",
 };
