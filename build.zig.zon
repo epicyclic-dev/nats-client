@@ -3,8 +3,8 @@
     .version = "0.0.1",
     .dependencies = .{
         .libressl = .{
-            .url = "https://github.com/epicyclic-dev/LibreSSL-portable/archive/4d1e5c45115b8522561994f10e1ed3d2362efc54.tar.gz",
-            .hash = "1220686a95159e60d9be002cb5c97508dc27fbcade83fd7ceff35fa0cb355039bc81",
+            .url = "https://github.com/epicyclic-dev/LibreSSL-portable/archive/2b68369a2b883714cea05357aa378b3a3e8ef2f6.tar.gz",
+            .hash = "12206b907fcb1dea424d122d29a0549bdc6c83648e0433973388b2efb6813b36a8fa",
         },
     },
 }
