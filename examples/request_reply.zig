@@ -29,10 +29,10 @@ pub fn main() !void {
     defer connection.destroy();
 
     var count: u32 = 0;
-    const subscription = try connection.subscribe(u32, "channel", onMessage, &count);
+    const subscription = try connection.subscribe(*u32, "channel", onMessage, &count);
     defer subscription.destroy();
 
-    while (count < 10) : (nats.sleep(1000)) {
+    while (count < 10) : (nats.sleep(100)) {
         const reply = try connection.request("channel", "greetings", 1000);
         defer reply.destroy();
 

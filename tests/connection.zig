@@ -164,14 +164,14 @@ test "nats.ConnectionOptions" {
     try options.setMaxReconnect(10);
     try options.setReconnectWait(500);
     try options.setReconnectJitter(100, 200);
-    try options.setCustomReconnectDelay(u32, reconnectDelayHandler, &userdata);
+    try options.setCustomReconnectDelay(*u32, reconnectDelayHandler, &userdata);
     try options.setReconnectBufSize(1024);
     try options.setMaxPendingMessages(50);
-    try options.setErrorHandler(u32, errorHandler, &userdata);
-    try options.setClosedCallback(u32, connectionHandler, &userdata);
-    try options.setDisconnectedCallback(u32, connectionHandler, &userdata);
-    try options.setDiscoveredServersCallback(u32, connectionHandler, &userdata);
-    try options.setLameDuckModeCallback(u32, connectionHandler, &userdata);
+    try options.setErrorHandler(*u32, errorHandler, &userdata);
+    try options.setClosedCallback(*u32, connectionHandler, &userdata);
+    try options.setDisconnectedCallback(*u32, connectionHandler, &userdata);
+    try options.setDiscoveredServersCallback(*u32, connectionHandler, &userdata);
+    try options.setLameDuckModeCallback(*u32, connectionHandler, &userdata);
     try options.ignoreDiscoveredServers(true);
     try options.useGlobalMessageDelivery(false);
     try options.ipResolutionOrder(.ipv4_first);
@@ -179,8 +179,8 @@ test "nats.ConnectionOptions" {
     try options.useOldRequestStyle(false);
     try options.setFailRequestsOnDisconnect(true);
     try options.setNoEcho(true);
-    try options.setRetryOnFailedConnect(u32, connectionHandler, true, &userdata);
-    try options.setUserCredentialsCallbacks(u32, u32, jwtHandler, signatureHandler, &userdata, &userdata);
+    try options.setRetryOnFailedConnect(*u32, connectionHandler, true, &userdata);
+    try options.setUserCredentialsCallbacks(*u32, *u32, jwtHandler, signatureHandler, &userdata, &userdata);
     try options.setWriteDeadline(5);
     try options.disableNoResponders(true);
     try options.setCustomInboxPrefix("_FOOBOX");
@@ -200,7 +200,7 @@ test "nats.ConnectionOptions (crypto edition)" {
     defer options.destroy();
     var userdata: u32 = 0;
 
-    try options.setTokenHandler(u32, tokenHandler, &userdata);
+    try options.setTokenHandler(*u32, tokenHandler, &userdata);
     try options.setSecure(false);
     try options.setCertificatesChain(rsa_cert, rsa_key);
     try options.setCiphers("-ALL:HIGH");

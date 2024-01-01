@@ -27,6 +27,7 @@ const Error = err_.Error;
 const Status = err_.Status;
 
 const thunk = @import("./thunk.zig");
+const checkUserDataType = @import("./thunk.zig").checkUserDataType;
 
 pub const Subscription = opaque {
     pub const MessageCount = struct {
@@ -191,13 +192,14 @@ const SubscriptionCallback = fn (
 ) callconv(.C) void;
 
 pub fn SubscriptionCallbackSignature(comptime T: type) type {
-    return fn (*T, *Connection, *Subscription, *Message) void;
+    return fn (T, *Connection, *Subscription, *Message) void;
 }
 
 pub fn makeSubscriptionCallbackThunk(
     comptime T: type,
     comptime callback: *const SubscriptionCallbackSignature(T),
 ) *const SubscriptionCallback {
+    comptime checkUserDataType(T);
     return struct {
         fn thunk(
             conn: ?*nats_c.natsConnection,
@@ -211,7 +213,7 @@ pub fn makeSubscriptionCallbackThunk(
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
             const subscription: *Subscription = if (sub) |s| @ptrCast(s) else unreachable;
 
-            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
+            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
 
             callback(data, connection, subscription, message);
         }

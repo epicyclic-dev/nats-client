@@ -113,7 +113,7 @@ test "nats.Subscription (async)" {
 
     {
         var count: u32 = 0;
-        const subscription = try connection.subscribe(u32, message_subject, onMessage, &count);
+        const subscription = try connection.subscribe(*u32, message_subject, onMessage, &count);
         defer subscription.destroy();
 
         const response = try connection.requestMessage(message, 1000);
@@ -126,7 +126,7 @@ test "nats.Subscription (async)" {
     {
         var count: u32 = 0;
         const subscription = try connection.subscribeTimeout(
-            u32,
+            *u32,
             message_subject,
             1000,
             onMessage,
@@ -144,7 +144,7 @@ test "nats.Subscription (async)" {
     {
         var count: u32 = 0;
         const subscription = try connection.queueSubscribe(
-            u32,
+            *u32,
             message_subject,
             "queuegroup",
             onMessage,
@@ -162,7 +162,7 @@ test "nats.Subscription (async)" {
     {
         var count: u32 = 0;
         const subscription = try connection.queueSubscribeTimeout(
-            u32,
+            *u32,
             message_subject,
             "queuegroup",
             1000,
