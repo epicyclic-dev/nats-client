@@ -59,7 +59,7 @@ const examples = [_]Example{
     .{ .name = "pub_bytes", .file = "examples/pub_bytes.zig" },
 };
 
-pub fn add_examples(b: *std.build, options: ExampleOptions) void {
+pub fn add_examples(b: *std.Build, options: ExampleOptions) void {
     const example_step = b.step("examples", "build examples");
 
     inline for (examples) |example| {
