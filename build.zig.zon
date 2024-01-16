@@ -1,10 +1,20 @@
 .{
     .name = "nats-client",
     .version = "0.0.1",
+    .paths = .{
+        "src",
+        "deps/nats.c/src",
+        "deps/nats.c/LICENSE",
+        "deps/protobuf-c",
+        "build.zig",
+        "nats-c.build.zig",
+        "build.zig.zon",
+        "LICENSE",
+    },
     .dependencies = .{
         .libressl = .{
-            .url = "https://github.com/epicyclic-dev/LibreSSL-portable/archive/2b68369a2b883714cea05357aa378b3a3e8ef2f6.tar.gz",
-            .hash = "12206b907fcb1dea424d122d29a0549bdc6c83648e0433973388b2efb6813b36a8fa",
+            .url = "https://github.com/epicyclic-dev/LibreSSL-portable/archive/9f74aeb1d2f5db5c375a1040cbd2b9abfa2749d1.tar.gz",
+            .hash = "122092a200f7e27e90974013d7e5cd5ef27438f67016852b5244ea287018263e78dc",
         },
     },
 }

@@ -5,7 +5,7 @@ const std = @import("std");
 
 const NatsCOptions = struct {
     name: []const u8,
-    target: std.zig.CrossTarget,
+    target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
 };
 
@@ -24,36 +24,36 @@ pub fn nats_c_lib(
     };
 
     lib.linkLibC();
-    lib.addCSourceFiles(&common_sources, &cflags);
+    lib.addCSourceFiles(.{ .files = &common_sources, .flags = &cflags });
     lib.addIncludePath(.{ .path = nats_src_prefix ++ "include" });
     // if building with streaming support (protocol.pb-c.c includes
     // <protobuf-c/protobuf-c.h>, unfortunately)
     lib.addIncludePath(.{ .path = "deps" });
     lib.addIncludePath(.{ .path = nats_src_prefix ++ "stan" });
-    lib.addCSourceFiles(&streaming_sources, &cflags);
-    lib.addCSourceFiles(&protobuf_c_sources, &cflags);
+    lib.addCSourceFiles(.{ .files = &streaming_sources, .flags = &cflags });
+    lib.addCSourceFiles(.{ .files = &protobuf_c_sources, .flags = &cflags });
 
     const ssl_dep = b.dependency("libressl", .{
         .target = options.target,
         .optimize = options.optimize,
     });
 
-    const tinfo = lib.target_info.target;
+    const tinfo = options.target.result;
     switch (tinfo.os.tag) {
         .windows => {
-            lib.addCSourceFiles(&win_sources, &cflags);
+            lib.addCSourceFiles(.{ .files = &win_sources, .flags = &cflags });
             if (tinfo.abi != .msvc) {
-                lib.addCSourceFiles(&.{"src/win-crosshack.c"}, &cflags);
+                lib.addCSourceFiles(.{ .files = &.{"src/win-crosshack.c"}, .flags = &cflags });
             }
             lib.defineCMacro("_WIN32", null);
             lib.linkSystemLibrary("ws2_32");
         },
         .macos => {
-            lib.addCSourceFiles(&unix_sources, &cflags);
+            lib.addCSourceFiles(.{ .files = &unix_sources, .flags = &cflags });
             lib.defineCMacro("DARWIN", null);
         },
         else => {
-            lib.addCSourceFiles(&unix_sources, &cflags);
+            lib.addCSourceFiles(.{ .files = &unix_sources, .flags = &cflags });
             lib.defineCMacro("_GNU_SOURCE", null);
             lib.defineCMacro("LINUX", null);
             // may need to link pthread and rt. Not sure if those are included with linkLibC
