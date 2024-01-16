@@ -22,7 +22,7 @@ Only tagged release versions of `nats.c` will be used. The current version of `n
 
 # Zig Version Support
 
-Since the language is still under active development, any written Zig code is a moving target. The plan is to support Zig `0.11.*` exclusively until the NATS library API has good coverage and is stabilized. At that point, if there are major breaking changes, a maintenance branch will be created, and master will probably move to track Zig master.
+Since the language is still under active development, any written Zig code is a moving target. The master branch targets zig 0.12 development versions (though it is not guaranteed to work with all versions. Check the commit history for specific version updates). The `zig-0.11.x` branch targets the current stable zig release, 0.11.
 
 # Using
 
