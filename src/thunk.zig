@@ -57,7 +57,7 @@ pub fn makeSimpleCallbackThunk(
     comptime checkUserDataType(T);
     return struct {
         fn thunk(userdata: ?*anyopaque) callconv(.C) void {
-            const data: *T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
+            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
             callback(data);
         }
     }.thunk;

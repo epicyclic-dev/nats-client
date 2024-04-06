@@ -93,6 +93,10 @@ fn onMessage(
     } else @panic("HOW");
 }
 
+fn onClose(userdata: *[]const u8) void {
+    userdata.* = "closed";
+}
+
 test "nats.Subscription (async)" {
     var server = try util.TestServer.launch(.{});
     defer server.stop();
@@ -111,15 +115,24 @@ test "nats.Subscription (async)" {
     defer message.destroy();
 
     {
-        const count: u32 = 0;
-        const subscription = try connection.subscribe(*const u32, message_subject, onMessage, &count);
-        defer subscription.destroy();
+        var closed: []const u8 = "test";
+        {
+            const count: u32 = 0;
+            const subscription = try connection.subscribe(*const u32, message_subject, onMessage, &count);
+            defer subscription.destroy();
 
-        const response = try connection.requestMessage(message, 1000);
-        try std.testing.expectEqualStrings(
-            "greetings",
-            response.getData() orelse return error.TestUnexpectedResult,
-        );
+            try subscription.setCompletionCallback(*[]const u8, onClose, &closed);
+
+            const response = try connection.requestMessage(message, 1000);
+            try std.testing.expectEqualStrings(
+                "greetings",
+                response.getData() orelse return error.TestUnexpectedResult,
+            );
+        }
+        // we have to sleep to allow the close callback to run. I am worried this may
+        // still end up being flaky, however.
+        nats.sleep(1);
+        try std.testing.expectEqualStrings("closed", closed);
     }
 
     {
