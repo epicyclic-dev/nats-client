@@ -179,7 +179,7 @@ pub const Subscription = opaque {
         return Status.fromInt(nats_c.natsSubscription_SetOnCompleteCB(
             @ptrCast(self),
             thunk.makeSimpleCallbackThunk(callback),
-            userdata,
+            @constCast(userdata),
         )).raise();
     }
 };

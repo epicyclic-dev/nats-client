@@ -80,18 +80,17 @@ test "nats.Subscription" {
 }
 
 fn onMessage(
-    userdata: *u32,
+    userdata: *const u32,
     connection: *nats.Connection,
     subscription: *nats.Subscription,
     message: *nats.Message,
 ) void {
     _ = subscription;
+    _ = userdata;
 
     if (message.getReply()) |reply| {
         connection.publish(reply, "greetings") catch @panic("OH NO");
     } else @panic("HOW");
-
-    userdata.* += 1;
 }
 
 test "nats.Subscription (async)" {
@@ -112,8 +111,8 @@ test "nats.Subscription (async)" {
     defer message.destroy();
 
     {
-        var count: u32 = 0;
-        const subscription = try connection.subscribe(*u32, message_subject, onMessage, &count);
+        const count: u32 = 0;
+        const subscription = try connection.subscribe(*const u32, message_subject, onMessage, &count);
         defer subscription.destroy();
 
         const response = try connection.requestMessage(message, 1000);
@@ -124,9 +123,9 @@ test "nats.Subscription (async)" {
     }
 
     {
-        var count: u32 = 0;
+        const count: u32 = 0;
         const subscription = try connection.subscribeTimeout(
-            *u32,
+            *const u32,
             message_subject,
             1000,
             onMessage,
@@ -142,9 +141,9 @@ test "nats.Subscription (async)" {
     }
 
     {
-        var count: u32 = 0;
+        const count: u32 = 0;
         const subscription = try connection.queueSubscribe(
-            *u32,
+            *const u32,
             message_subject,
             "queuegroup",
             onMessage,
@@ -162,7 +161,7 @@ test "nats.Subscription (async)" {
     {
         var count: u32 = 0;
         const subscription = try connection.queueSubscribeTimeout(
-            *u32,
+            *const u32,
             message_subject,
             "queuegroup",
             1000,

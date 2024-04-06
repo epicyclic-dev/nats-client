@@ -348,7 +348,7 @@ pub const Connection = opaque {
             @ptrCast(self),
             subject.ptr,
             makeSubscriptionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         ));
         return status.toError() orelse sub;
     }
@@ -369,7 +369,7 @@ pub const Connection = opaque {
             subject.ptr,
             timeout,
             makeSubscriptionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         ));
 
         return status.toError() orelse sub;
@@ -403,7 +403,7 @@ pub const Connection = opaque {
             subject.ptr,
             queue_group.ptr,
             makeSubscriptionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         ));
 
         return status.toError() orelse sub;
@@ -427,7 +427,7 @@ pub const Connection = opaque {
             queue_group.ptr,
             timeout,
             makeSubscriptionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         ));
 
         return status.toError() orelse sub;
@@ -504,7 +504,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetTokenHandler(
             @ptrCast(self),
             makeTokenCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         )).raise();
     }
 
@@ -644,7 +644,7 @@ pub const ConnectionOptions = opaque {
             nats_c.natsOptions_SetCustomReconnectDelay(
                 @ptrCast(self),
                 makeReconnectDelayCallbackThunk(T, callback),
-                userdata,
+                @constCast(@ptrCast(userdata)),
             ),
         ).raise();
     }
@@ -671,7 +671,7 @@ pub const ConnectionOptions = opaque {
             nats_c.natsOptions_SetErrorHandler(
                 @ptrCast(self),
                 makeErrorHandlerCallbackThunk(T, callback),
-                userdata,
+                @constCast(@ptrCast(userdata)),
             ),
         ).raise();
     }
@@ -685,7 +685,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         )).raise();
     }
 
@@ -698,7 +698,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         )).raise();
     }
 
@@ -711,7 +711,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         )).raise();
     }
 
@@ -724,7 +724,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         )).raise();
     }
 
@@ -737,7 +737,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         )).raise();
     }
 
@@ -753,7 +753,7 @@ pub const ConnectionOptions = opaque {
     ) Error!void {
         return Status.fromInt(nats_c.natsOptions_SetEventLoop(
             @ptrCast(self),
-            @ptrCast(loop),
+            @constCast(@ptrCast(loop)),
             makeAttachEventLoopCallbackThunk(T, L, attach_callback),
             makeEventLoopAddRemoveCallbackThunk(T, read_callback),
             makeEventLoopAddRemoveCallbackThunk(T, write_callback),
@@ -822,7 +822,7 @@ pub const ConnectionOptions = opaque {
             @ptrCast(self),
             retry,
             makeConnectionCallbackThunk(T, callback),
-            userdata,
+            @constCast(@ptrCast(userdata)),
         )).raise();
     }
 
@@ -838,13 +838,17 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetUserCredentialsCallbacks(
             @ptrCast(self),
             makeJwtHandlerCallbackThunk(T, jwt_callback),
-            jwt_userdata,
+            @constCast(@ptrCast(jwt_userdata)),
             makeSignatureHandlerCallbackThunk(U, sig_callback),
-            sig_userdata,
+            @constCast(@ptrCast(sig_userdata)),
         )).raise();
     }
 
-    pub fn setUserCredentialsFromFiles(self: *ConnectionOptions, user_or_chained_file: [:0]const u8, seed_file: [:0]const u8) Error!void {
+    pub fn setUserCredentialsFromFiles(
+        self: *ConnectionOptions,
+        user_or_chained_file: [:0]const u8,
+        seed_file: [:0]const u8,
+    ) Error!void {
         return Status.fromInt(
             nats_c.natsOptions_SetUserCredentialsFromFiles(
                 @ptrCast(self),
@@ -874,7 +878,7 @@ pub const ConnectionOptions = opaque {
             @ptrCast(self),
             pub_key.ptr,
             makeSignatureHandlerCallbackThunk(T, sig_callback),
-            sig_userdata,
+            @constCast(@ptrCast(sig_userdata)),
         )).raise();
     }
 

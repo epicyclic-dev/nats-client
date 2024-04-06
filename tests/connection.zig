@@ -99,7 +99,7 @@ test "nats.Connection" {
     connection.drainTimeout(1000) catch {};
 }
 
-fn reconnectDelayHandler(userdata: *u32, connection: *nats.Connection, attempts: c_int) i64 {
+fn reconnectDelayHandler(userdata: *const u32, connection: *nats.Connection, attempts: c_int) i64 {
     _ = userdata;
     _ = connection;
     _ = attempts;
@@ -108,7 +108,7 @@ fn reconnectDelayHandler(userdata: *u32, connection: *nats.Connection, attempts:
 }
 
 fn errorHandler(
-    userdata: *u32,
+    userdata: *const u32,
     connection: *nats.Connection,
     subscription: *nats.Subscription,
     status: nats.Status,
@@ -119,18 +119,18 @@ fn errorHandler(
     _ = status;
 }
 
-fn connectionHandler(userdata: *u32, connection: *nats.Connection) void {
+fn connectionHandler(userdata: *const u32, connection: *nats.Connection) void {
     _ = userdata;
     _ = connection;
 }
 
-fn jwtHandler(userdata: *u32) nats.JwtResponseOrError {
+fn jwtHandler(userdata: *const u32) nats.JwtResponseOrError {
     _ = userdata;
     // return .{ .jwt = std.heap.raw_c_allocator.dupeZ(u8, "abcdef") catch @panic("no!") };
     return .{ .error_message = std.heap.raw_c_allocator.dupeZ(u8, "dang") catch @panic("no!") };
 }
 
-fn signatureHandler(userdata: *u32, nonce: [:0]const u8) nats.SignatureResponseOrError {
+fn signatureHandler(userdata: *const u32, nonce: [:0]const u8) nats.SignatureResponseOrError {
     _ = userdata;
     _ = nonce;
     // return .{ .signature = std.heap.raw_c_allocator.dupe(u8, "01230123") catch @panic("no!") };
@@ -144,7 +144,7 @@ test "nats.ConnectionOptions" {
     const options = try nats.ConnectionOptions.create();
     defer options.destroy();
 
-    var userdata: u32 = 0;
+    const userdata: u32 = 0;
 
     try options.setUrl(nats.default_server_url);
     const servers = [_][*:0]const u8{ "nats://127.0.0.1:4442", "nats://127.0.0.1:4443" };
@@ -164,14 +164,14 @@ test "nats.ConnectionOptions" {
     try options.setMaxReconnect(10);
     try options.setReconnectWait(500);
     try options.setReconnectJitter(100, 200);
-    try options.setCustomReconnectDelay(*u32, reconnectDelayHandler, &userdata);
+    try options.setCustomReconnectDelay(*const u32, reconnectDelayHandler, &userdata);
     try options.setReconnectBufSize(1024);
     try options.setMaxPendingMessages(50);
-    try options.setErrorHandler(*u32, errorHandler, &userdata);
-    try options.setClosedCallback(*u32, connectionHandler, &userdata);
-    try options.setDisconnectedCallback(*u32, connectionHandler, &userdata);
-    try options.setDiscoveredServersCallback(*u32, connectionHandler, &userdata);
-    try options.setLameDuckModeCallback(*u32, connectionHandler, &userdata);
+    try options.setErrorHandler(*const u32, errorHandler, &userdata);
+    try options.setClosedCallback(*const u32, connectionHandler, &userdata);
+    try options.setDisconnectedCallback(*const u32, connectionHandler, &userdata);
+    try options.setDiscoveredServersCallback(*const u32, connectionHandler, &userdata);
+    try options.setLameDuckModeCallback(*const u32, connectionHandler, &userdata);
     try options.ignoreDiscoveredServers(true);
     try options.useGlobalMessageDelivery(false);
     try options.ipResolutionOrder(.ipv4_first);
@@ -179,8 +179,8 @@ test "nats.ConnectionOptions" {
     try options.useOldRequestStyle(false);
     try options.setFailRequestsOnDisconnect(true);
     try options.setNoEcho(true);
-    try options.setRetryOnFailedConnect(*u32, connectionHandler, true, &userdata);
-    try options.setUserCredentialsCallbacks(*u32, *u32, jwtHandler, signatureHandler, &userdata, &userdata);
+    try options.setRetryOnFailedConnect(*const u32, connectionHandler, true, &userdata);
+    try options.setUserCredentialsCallbacks(*const u32, *const u32, jwtHandler, signatureHandler, &userdata, &userdata);
     try options.setWriteDeadline(5);
     try options.disableNoResponders(true);
     try options.setCustomInboxPrefix("_FOOBOX");
