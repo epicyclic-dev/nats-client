@@ -174,12 +174,12 @@ pub const Subscription = opaque {
         self: *Subscription,
         comptime T: type,
         comptime callback: *const thunk.SimpleCallbackThunkSignature(T),
-        userdata: *T,
+        userdata: T,
     ) Error!void {
         return Status.fromInt(nats_c.natsSubscription_SetOnCompleteCB(
             @ptrCast(self),
-            thunk.makeSimpleCallbackThunk(callback),
-            @constCast(userdata),
+            thunk.makeSimpleCallbackThunk(T, callback),
+            @constCast(@ptrCast(userdata)),
         )).raise();
     }
 };
