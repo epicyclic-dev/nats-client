@@ -23,7 +23,7 @@ pub fn checkUserDataType(comptime T: type) void {
         .Optional => |info| switch (@typeInfo(info.child)) {
             .Optional => @compileError(
                 "nats callbacks can only accept an (optional) single, many," ++
-                    " or c pointer as userdata, not slices. \"" ++
+                    " or c pointer as userdata. \"" ++
                     @typeName(T) ++ "\" has more than one optional specifier.",
             ),
             else => checkUserDataType(info.child),
@@ -38,7 +38,7 @@ pub fn checkUserDataType(comptime T: type) void {
         },
         else => @compileError(
             "nats callbacks can only accept an (optional) single, many," ++
-                " or c pointer as userdata, not slices. \"" ++
+                " or c pointer as userdata. \"" ++
                 @typeName(T) ++ "\" is not a pointer type.",
         ),
     }
