@@ -13,8 +13,8 @@
     },
     .dependencies = .{
         .libressl = .{
-            .url = "https://github.com/epicyclic-dev/LibreSSL-portable/archive/9f74aeb1d2f5db5c375a1040cbd2b9abfa2749d1.tar.gz",
-            .hash = "122092a200f7e27e90974013d7e5cd5ef27438f67016852b5244ea287018263e78dc",
+            .url = "https://github.com/epicyclic-dev/LibreSSL-portable/archive/e95f71abab96329b3465b931822ba250c8f49236.tar.gz",
+            .hash = "12209998e2dc9474dc232f6be9a8bde9e49cde3e42ed71bfe8d514758f0a398b3d30",
         },
     },
 }

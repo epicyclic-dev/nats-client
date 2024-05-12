@@ -69,7 +69,7 @@ pub fn nats_c_lib(
     lib.defineCMacro("_REENTRANT", null);
 
     inline for (install_headers) |header| {
-        lib.installHeader(nats_src_prefix ++ header, "nats/" ++ header);
+        lib.installHeader(b.path(nats_src_prefix ++ header), "nats/" ++ header);
     }
 
     lib.linkLibrary(ssl_dep.artifact("ssl"));
