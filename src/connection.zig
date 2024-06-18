@@ -14,9 +14,7 @@
 
 const std = @import("std");
 
-pub const nats_c = @cImport({
-    @cInclude("nats/nats.h");
-});
+const nats_c = @import("./nats_c.zig").nats_c;
 
 const Subscription = @import("./subscription.zig").Subscription;
 const SubscriptionCallbackSignature = @import("./subscription.zig").SubscriptionCallbackSignature;

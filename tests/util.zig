@@ -20,7 +20,7 @@ const TestLaunchError = error{
 
 pub const TestServer = struct {
     allocator: std.mem.Allocator,
-    process: std.ChildProcess,
+    process: std.process.Child,
     key_dir: ?std.testing.TmpDir,
     url: [:0]u8,
 
@@ -99,8 +99,8 @@ pub const TestServer = struct {
                     const out_dir = std.testing.tmpDir(.{});
                     key_dir = out_dir;
 
-                    try out_dir.dir.writeFile("server.key", pair.key);
-                    try out_dir.dir.writeFile("server.cert", pair.cert);
+                    try out_dir.dir.writeFile(.{ .sub_path = "server.key", .data = pair.key });
+                    try out_dir.dir.writeFile(.{ .sub_path = "server.cert", .data = pair.cert });
                     // since testing.tmpDir will actually bury itself in zig-cache/tmp,
                     // there's not an easy way to extract files from within the temp
                     // directory except through using realPath, as far as I can tell
@@ -123,7 +123,7 @@ pub const TestServer = struct {
 
         defer options.allocator.free(args);
 
-        var child = std.ChildProcess.init(args, options.allocator);
+        var child = std.process.Child.init(args, options.allocator);
         child.stdin_behavior = .Ignore;
         child.stdout_behavior = .Pipe;
         child.stderr_behavior = .Pipe;

@@ -9,19 +9,19 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const nats = b.addModule("nats", .{
-        .root_source_file = .{ .path = "src/nats.zig" },
+        .root_source_file = b.path("src/nats.zig"),
     });
-    nats.addIncludePath(.{ .path = b.getInstallPath(.header, "") });
 
     const nats_c = nats_build.nats_c_lib(b, .{
         .name = "nats-c",
         .target = target,
         .optimize = optimize,
     });
+    nats.linkLibrary(nats_c);
 
     const tests = b.addTest(.{
         .name = "nats-zig-unit-tests",
-        .root_source_file = .{ .path = "tests/main.zig" },
+        .root_source_file = b.path("tests/main.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -38,7 +38,6 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .nats_module = nats,
-        .nats_c = nats_c,
     });
 }
 
@@ -46,7 +45,6 @@ const ExampleOptions = struct {
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     nats_module: *std.Build.Module,
-    nats_c: *std.Build.Step.Compile,
 };
 
 const Example = struct {
@@ -66,13 +64,12 @@ pub fn add_examples(b: *std.Build, options: ExampleOptions) void {
     inline for (examples) |example| {
         const ex_exe = b.addExecutable(.{
             .name = example.name,
-            .root_source_file = .{ .path = example.file },
+            .root_source_file = b.path(example.file),
             .target = options.target,
             .optimize = .Debug,
         });
 
         ex_exe.root_module.addImport("nats", options.nats_module);
-        ex_exe.linkLibrary(options.nats_c);
 
         const install = b.addInstallArtifact(ex_exe, .{});
         example_step.dependOn(&install.step);

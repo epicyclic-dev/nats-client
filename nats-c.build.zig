@@ -25,11 +25,11 @@ pub fn nats_c_lib(
 
     lib.linkLibC();
     lib.addCSourceFiles(.{ .files = &common_sources, .flags = &cflags });
-    lib.addIncludePath(.{ .path = nats_src_prefix ++ "include" });
+    lib.addIncludePath(b.path(nats_src_prefix ++ "include"));
     // if building with streaming support (protocol.pb-c.c includes
     // <protobuf-c/protobuf-c.h>, unfortunately)
-    lib.addIncludePath(.{ .path = "deps" });
-    lib.addIncludePath(.{ .path = nats_src_prefix ++ "stan" });
+    lib.addIncludePath(b.path("deps"));
+    lib.addIncludePath(b.path(nats_src_prefix ++ "stan"));
     lib.addCSourceFiles(.{ .files = &streaming_sources, .flags = &cflags });
     lib.addCSourceFiles(.{ .files = &protobuf_c_sources, .flags = &cflags });
 

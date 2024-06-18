@@ -14,9 +14,7 @@
 
 const std = @import("std");
 
-pub const nats_c = @cImport({
-    @cInclude("nats/nats.h");
-});
+const nats_c = @import("./nats_c.zig").nats_c;
 
 // pub const AllocError = Error || std.mem.Allocator.Error;
 

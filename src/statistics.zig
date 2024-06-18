@@ -14,9 +14,7 @@
 
 const std = @import("std");
 
-const nats_c = @cImport({
-    @cInclude("nats/nats.h");
-});
+const nats_c = @import("./nats_c.zig").nats_c;
 
 const err_ = @import("./error.zig");
 const Status = err_.Status;
