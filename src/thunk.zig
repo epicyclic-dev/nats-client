@@ -16,7 +16,49 @@ const std = @import("std");
 
 const nats_c = @import("./nats_c.zig").nats_c;
 
-pub fn checkUserDataType(comptime T: type) void {
+pub fn CallbackType(comptime T: type) type {
+    return switch (@typeInfo(T)) {
+        .optional => |info| ?CallbackType(info.child),
+        .pointer => |info| switch (info.size) {
+            .Slice => *const T,
+            else => T,
+        },
+        else => *T,
+    };
+}
+
+pub const checkUserDataType = if (@hasField(std.builtin.Type, "optional"))
+    checkUserDataType_14
+else
+    checkUserDataType_13;
+
+pub fn checkUserDataType_14(comptime T: type) void {
+    switch (@typeInfo(T)) {
+        .optional => |info| switch (@typeInfo(info.child)) {
+            .optional => @compileError(
+                "nats callbacks can only accept an (optional) single, many," ++
+                    " or c pointer as userdata. \"" ++
+                    @typeName(T) ++ "\" has more than one optional specifier.",
+            ),
+            else => checkUserDataType(info.child),
+        },
+        .pointer => |info| switch (info.size) {
+            .Slice => @compileError(
+                "nats callbacks can only accept an (optional) single, many," ++
+                    " or c pointer as userdata, not slices. \"" ++
+                    @typeName(T) ++ "\" appears to be a slice.",
+            ),
+            else => {},
+        },
+        else => @compileError(
+            "nats callbacks can only accept an (optional) single, many," ++
+                " or c pointer as userdata. \"" ++
+                @typeName(T) ++ "\" is not a pointer type.",
+        ),
+    }
+}
+
+pub fn checkUserDataType_13(comptime T: type) void {
     switch (@typeInfo(T)) {
         .Optional => |info| switch (@typeInfo(info.child)) {
             .Optional => @compileError(
