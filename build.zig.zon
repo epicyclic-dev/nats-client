@@ -3,18 +3,14 @@
     .version = "0.1.0",
     .paths = .{
         "src",
-        "deps/nats.c/src",
-        "deps/nats.c/LICENSE",
-        "deps/protobuf-c",
         "build.zig",
-        "nats-c.build.zig",
         "build.zig.zon",
         "LICENSE",
     },
     .dependencies = .{
-        .libressl = .{
-            .url = "https://github.com/epicyclic-dev/LibreSSL-portable/archive/62af702f8d57a4cd651e1cc30784abf39a3a4e66.tar.gz",
-            .hash = "122045ccefa4e7b4537e106d3045150f77d2aad4fce730d59678a9a8a151608a1d17",
+        .nats_c = .{
+            .url = "git+https://github.com/allyourcodebase/nats.c.git?ref=3.8.2#06523bf0ed428b2ecfd8031094fdf6ac12ef6309",
+            .hash = "1220e851506bb08e6bfe801ab9aab9f7774ddc09b445e855b6523259638f72e1aa8a",
         },
     },
 }

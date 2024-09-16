@@ -8,7 +8,7 @@ There are three main goals:
   2. Provide a native-feeling Zig client API.
   3. Support cross-compilation to the platforms that Zig supports.
 
-`nats.c` is compiled against a copy of LibreSSL that has been wrapped with the zig build system. This appears to work, but it notably is not specifically OpenSSL, so there may be corner cases around encrypted connections. The `protobuf-c` runtime library is compiled directly in-tree.
+`nats.c` is compiled against a copy of LibreSSL that has been wrapped with the zig build system. This appears to work, but it notably is not specifically OpenSSL, so there may be corner cases around encrypted connections.
 
 # Status
 
@@ -18,50 +18,34 @@ In theory, all wrapped APIs are referenced in unit tests so that they are at lea
 
 The standard workflows around publishing and subscribing to messages seem to work well and feel (in my opinion) sufficiently Zig-like. Some of the APIs use getter/setter functions more heavily than I think a native Zig implementation would, due to the fact that the underlying C library is designed with a very clean opaque handle API style.
 
-Only tagged release versions of `nats.c` will be used. The current version of `nats.c` being used is `3.7.0`.
 
 # Zig Version Support
 
-Since the language is still under active development, any written Zig code is a moving target. The master branch targets zig 0.12 development versions (though it is not guaranteed to work with all versions. Check the commit history for specific version updates). The `zig-0.11.x` branch targets the current stable zig release, 0.11.
+Since the language is still under active development, any written Zig code is a moving target. The master branch targets zig `0.12`, `0.13`, and `0.14-dev` (though it is not guaranteed to work with all versions. Check the commit history for specific version updates).
 
 # Using
 
-NATS.zig is ready-to-use with the Zig package manager. With Zig 0.11.x, this means you will need to create a `build.zig.zon` and modify your `build.zig` to use the dependency.
+These bindings are ready-to-use with the Zig package manager. With Zig 0.13, this means you will need to create a `build.zig.zon` and modify your `build.zig` to use the dependency.
 
-### Example `build.zig.zon`
-
-```zig
-.{
-    .name = "my cool project",
-    .version = "0.1.0",
-    .dependencies = .{
-        .nats = .{
-            .url = "https://github.com/epicyclic-dev/nats.zig/archive/<git commit hash>.tar.gz",
-            // on first run, `zig build` will prompt you to add the missing hash.
-            // .hash = "",
-        },
-    },
-}
+```sh
+# bootstrap your zig project if you haven't already
+zig init
+# add the nats-client dependency
+zig fetch --save git+https://github.com/epicyclic-dev/nats-client.git
 ```
 
-### Example `build.zig`
+You can then use `nats_client` in your `build.zig` with:
 
 ```zig
-const std = @import("std");
-
-pub fn build(b: *std.Build) void {
-    const my_program = b.addExecutable(.{
-        .name="cool-project",
-        .root_source_file = .{.path = "my_cool_project.zig"},
-    });
-
-    const nats_dep = b.dependency("nats", .{});
-
-    my_program.addModule("nats", nats_dep.module("nats"));
-    my_program.linkLibrary(nats_dep.artifact("nats-c"));
-
-    b.installArtifact(my_program);
-}
+const nats_dep = b.dependency("nats_client", .{
+    .target = target,
+    .optimize = optimize,
+    .@"enable-libsodium" = true, // Use libsodium for optimized implementations of some signing routines
+    .@"enable-tls" = true, // enable SSL/TLS support
+    .@"force-host-verify" = true, // force hostname verification for TLS connections
+    .@"enable-streaming" = true, // build with support for NATS streaming extensions
+});
+your_exe.root_module.addImport("nats", nats_dep.artifact("nats"));
 ```
 
 # Building

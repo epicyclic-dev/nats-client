@@ -1,23 +1,29 @@
 // This file is licensed under the CC0 1.0 license.
 // See: https://creativecommons.org/publicdomain/zero/1.0/legalcode
-
 const std = @import("std");
-const nats_build = @import("./nats-c.build.zig");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const enable_libsodium = b.option(bool, "enable-libsodium", "Build with libsodium for higher-performance signing (default: true)") orelse true;
+    const enable_tls = b.option(bool, "enable-tls", "Build TLS support (default: true)") orelse true;
+    const tls_verify = b.option(bool, "force-host-verify", "Force hostname verification for TLS connections (default: true)") orelse true;
+    const enable_streaming = b.option(bool, "enable-streaming", "Build with streaming support (default: true)") orelse true;
+
     const nats = b.addModule("nats", .{
         .root_source_file = b.path("src/nats.zig"),
     });
 
-    const nats_c = nats_build.nats_c_lib(b, .{
-        .name = "nats-c",
+    const nats_c = b.dependency("nats_c", .{
         .target = target,
         .optimize = optimize,
+        .@"enable-libsodium" = enable_libsodium,
+        .@"enable-tls" = enable_tls,
+        .@"force-host-verify" = tls_verify,
+        .@"enable-streaming" = enable_streaming,
     });
-    nats.linkLibrary(nats_c);
+    nats.linkLibrary(nats_c.artifact("nats"));
 
     const tests = b.addTest(.{
         .name = "nats-zig-unit-tests",
@@ -27,7 +33,7 @@ pub fn build(b: *std.Build) void {
     });
 
     tests.root_module.addImport("nats", nats);
-    tests.linkLibrary(nats_c);
+    tests.linkLibrary(nats_c.artifact("nats"));
 
     const run_main_tests = b.addRunArtifact(tests);
     const test_step = b.step("test", "Run tests");
