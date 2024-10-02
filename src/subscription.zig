@@ -24,8 +24,7 @@ const err_ = @import("./error.zig");
 const Error = err_.Error;
 const Status = err_.Status;
 
-const thunk = @import("./thunk.zig");
-const checkUserDataType = @import("./thunk.zig").checkUserDataType;
+const thunkhelper = @import("./thunk.zig");
 
 pub const Subscription = opaque {
     pub const MessageCount = struct {
@@ -171,13 +170,13 @@ pub const Subscription = opaque {
     pub fn setCompletionCallback(
         self: *Subscription,
         comptime T: type,
-        comptime callback: *const thunk.SimpleCallbackThunkSignature(T),
+        comptime callback: *const thunkhelper.SimpleCallbackThunkSignature(T),
         userdata: T,
     ) Error!void {
         return Status.fromInt(nats_c.natsSubscription_SetOnCompleteCB(
             @ptrCast(self),
-            thunk.makeSimpleCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.makeSimpleCallbackThunk(T, callback),
+            thunkhelper.opaqueFromUserdata(userdata),
         )).raise();
     }
 };
@@ -189,15 +188,14 @@ const SubscriptionCallback = fn (
     ?*anyopaque,
 ) callconv(.C) void;
 
-pub fn SubscriptionCallbackSignature(comptime T: type) type {
-    return fn (T, *Connection, *Subscription, *Message) void;
+pub fn SubscriptionCallbackSignature(comptime UDT: type) type {
+    return fn (UDT, *Connection, *Subscription, *Message) void;
 }
 
 pub fn makeSubscriptionCallbackThunk(
-    comptime T: type,
-    comptime callback: *const SubscriptionCallbackSignature(T),
+    comptime UDT: type,
+    comptime callback: *const SubscriptionCallbackSignature(UDT),
 ) *const SubscriptionCallback {
-    comptime checkUserDataType(T);
     return struct {
         fn thunk(
             conn: ?*nats_c.natsConnection,
@@ -211,8 +209,7 @@ pub fn makeSubscriptionCallbackThunk(
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
             const subscription: *Subscription = if (sub) |s| @ptrCast(s) else unreachable;
 
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
-
+            const data = thunkhelper.userdataFromOpaque(UDT, userdata);
             callback(data, connection, subscription, message);
         }
     }.thunk;

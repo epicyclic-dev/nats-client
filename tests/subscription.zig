@@ -190,3 +190,109 @@ test "nats.Subscription (async)" {
         );
     }
 }
+
+fn onVoidMessage(
+    userdata: void,
+    connection: *nats.Connection,
+    subscription: *nats.Subscription,
+    message: *nats.Message,
+) void {
+    _ = subscription;
+    _ = userdata;
+
+    if (message.getReply()) |reply| {
+        connection.publish(reply, "greetings") catch @panic("OH NO");
+    } else @panic("HOW");
+}
+
+fn onVoidClose(userdata: void) void {
+    _ = userdata;
+}
+
+test "nats.Subscription (async, void)" {
+    var server = try util.TestServer.launch(.{});
+    defer server.stop();
+
+    try nats.init(nats.default_spin_count);
+    defer nats.deinit();
+
+    const connection = try nats.Connection.connectTo(server.url);
+    defer connection.destroy();
+
+    const message_subject: [:0]const u8 = "hello";
+    const message_reply: [:0]const u8 = "reply";
+    const message_data: [:0]const u8 = "world";
+
+    const message = try nats.Message.create(message_subject, message_reply, message_data);
+    defer message.destroy();
+
+    {
+        {
+            const subscription = try connection.subscribe(void, message_subject, onVoidMessage, {});
+            defer subscription.destroy();
+
+            try subscription.setCompletionCallback(void, onVoidClose, {});
+
+            const response = try connection.requestMessage(message, 1000);
+            try std.testing.expectEqualStrings(
+                "greetings",
+                response.getData() orelse return error.TestUnexpectedResult,
+            );
+        }
+        // we have to sleep to allow the close callback to run.
+        nats.sleep(1);
+    }
+}
+
+fn onNullMessage(
+    userdata: ?*void,
+    connection: *nats.Connection,
+    subscription: *nats.Subscription,
+    message: *nats.Message,
+) void {
+    _ = subscription;
+    _ = userdata;
+
+    if (message.getReply()) |reply| {
+        connection.publish(reply, "greetings") catch @panic("OH NO");
+    } else @panic("HOW");
+}
+
+fn onNullClose(userdata: ?*void) void {
+    _ = userdata;
+}
+
+test "nats.Subscription (async, null)" {
+    var server = try util.TestServer.launch(.{});
+    defer server.stop();
+
+    try nats.init(nats.default_spin_count);
+    defer nats.deinit();
+
+    const connection = try nats.Connection.connectTo(server.url);
+    defer connection.destroy();
+
+    const message_subject: [:0]const u8 = "hello";
+    const message_reply: [:0]const u8 = "reply";
+    const message_data: [:0]const u8 = "world";
+
+    const message = try nats.Message.create(message_subject, message_reply, message_data);
+    defer message.destroy();
+
+    {
+        {
+            const subscription = try connection.subscribe(?*void, message_subject, onNullMessage, null);
+            defer subscription.destroy();
+
+            try subscription.setCompletionCallback(?*void, onNullClose, null);
+
+            const response = try connection.requestMessage(message, 1000);
+            try std.testing.expectEqualStrings(
+                "greetings",
+                response.getData() orelse return error.TestUnexpectedResult,
+            );
+        }
+        // we have to sleep to allow the close callback to run.
+        nats.sleep(1);
+    }
+}

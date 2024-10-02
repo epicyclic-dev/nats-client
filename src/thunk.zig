@@ -16,68 +16,51 @@ const std = @import("std");
 
 const nats_c = @import("./nats_c.zig").nats_c;
 
-pub fn CallbackType(comptime T: type) type {
-    return switch (@typeInfo(T)) {
-        .optional => |info| ?CallbackType(info.child),
-        .pointer => |info| switch (info.size) {
-            .Slice => *const T,
-            else => T,
-        },
-        else => *T,
+const optional = if (@hasField(std.builtin.Type, "optional")) .optional else .Optional;
+const pointer = if (@hasField(std.builtin.Type, "pointer")) .pointer else .Pointer;
+const void_type = if (@hasField(std.builtin.Type, "void")) .void else .Void;
+const null_type = if (@hasField(std.builtin.Type, "null")) .null else .Null;
+
+pub fn opaqueFromUserdata(userdata: anytype) ?*anyopaque {
+    checkUserDataType(@TypeOf(userdata));
+    return switch (@typeInfo(@TypeOf(userdata))) {
+        optional, pointer => @constCast(@ptrCast(userdata)),
+        void_type => null,
+        else => @compileError("Unsupported userdata type " ++ @typeName(@TypeOf(userdata))),
     };
 }
 
-pub const checkUserDataType = if (@hasField(std.builtin.Type, "optional"))
-    checkUserDataType_14
-else
-    checkUserDataType_13;
-
-pub fn checkUserDataType_14(comptime T: type) void {
-    switch (@typeInfo(T)) {
-        .optional => |info| switch (@typeInfo(info.child)) {
-            .optional => @compileError(
-                "nats callbacks can only accept an (optional) single, many," ++
-                    " or c pointer as userdata. \"" ++
-                    @typeName(T) ++ "\" has more than one optional specifier.",
-            ),
-            else => checkUserDataType(info.child),
-        },
-        .pointer => |info| switch (info.size) {
-            .Slice => @compileError(
-                "nats callbacks can only accept an (optional) single, many," ++
-                    " or c pointer as userdata, not slices. \"" ++
-                    @typeName(T) ++ "\" appears to be a slice.",
-            ),
-            else => {},
-        },
-        else => @compileError(
-            "nats callbacks can only accept an (optional) single, many," ++
-                " or c pointer as userdata. \"" ++
-                @typeName(T) ++ "\" is not a pointer type.",
-        ),
-    }
+pub fn userdataFromOpaque(comptime UDT: type, userdata: ?*anyopaque) UDT {
+    comptime checkUserDataType(UDT);
+    return if (UDT == void)
+        void{}
+    else if (@typeInfo(UDT) == optional)
+        @alignCast(@ptrCast(userdata))
+    else
+        @alignCast(@ptrCast(userdata.?));
 }
 
-pub fn checkUserDataType_13(comptime T: type) void {
+pub fn checkUserDataType(comptime T: type) void {
     switch (@typeInfo(T)) {
-        .Optional => |info| switch (@typeInfo(info.child)) {
-            .Optional => @compileError(
-                "nats callbacks can only accept an (optional) single, many," ++
+        optional => |info| switch (@typeInfo(info.child)) {
+            optional => @compileError(
+                "nats callbacks can only accept void or an (optional) single, many," ++
                     " or c pointer as userdata. \"" ++
                     @typeName(T) ++ "\" has more than one optional specifier.",
             ),
             else => checkUserDataType(info.child),
         },
-        .Pointer => |info| switch (info.size) {
+        pointer => |info| switch (info.size) {
             .Slice => @compileError(
-                "nats callbacks can only accept an (optional) single, many," ++
+                "nats callbacks can only accept void or an (optional) single, many," ++
                     " or c pointer as userdata, not slices. \"" ++
                     @typeName(T) ++ "\" appears to be a slice.",
             ),
             else => {},
         },
+        void_type => {},
         else => @compileError(
-            "nats callbacks can only accept an (optional) single, many," ++
+            "nats callbacks can only accept void or an (optional) single, many," ++
                 " or c pointer as userdata. \"" ++
                 @typeName(T) ++ "\" is not a pointer type.",
         ),
@@ -86,19 +69,18 @@ pub fn checkUserDataType_13(comptime T: type) void {
 
 const SimpleCallback = fn (?*anyopaque) callconv(.C) void;
 
-pub fn SimpleCallbackThunkSignature(comptime T: type) type {
-    return fn (T) void;
+pub fn SimpleCallbackThunkSignature(comptime UDT: type) type {
+    return fn (UDT) void;
 }
 
 pub fn makeSimpleCallbackThunk(
-    comptime T: type,
-    comptime callback: *const SimpleCallbackThunkSignature(T),
+    comptime UDT: type,
+    comptime callback: *const SimpleCallbackThunkSignature(UDT),
 ) *const SimpleCallback {
-    comptime checkUserDataType(T);
+    comptime checkUserDataType(UDT);
     return struct {
         fn thunk(userdata: ?*anyopaque) callconv(.C) void {
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
-            callback(data);
+            callback(userdataFromOpaque(UDT, userdata));
         }
     }.thunk;
 }

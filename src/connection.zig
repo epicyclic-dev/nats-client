@@ -29,8 +29,7 @@ const ErrorInfo = @import("./error.zig").ErrorInfo;
 const Statistics = @import("./statistics.zig").Statistics;
 const StatsCounts = @import("./statistics.zig").StatsCounts;
 
-const thunk = @import("./thunk.zig");
-const checkUserDataType = @import("./thunk.zig").checkUserDataType;
+const thunkhelper = @import("./thunk.zig");
 
 pub const default_server_url: [:0]const u8 = nats_c.NATS_DEFAULT_URL;
 
@@ -346,7 +345,7 @@ pub const Connection = opaque {
             @ptrCast(self),
             subject.ptr,
             makeSubscriptionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         ));
         return status.toError() orelse sub;
     }
@@ -367,7 +366,7 @@ pub const Connection = opaque {
             subject.ptr,
             timeout,
             makeSubscriptionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         ));
 
         return status.toError() orelse sub;
@@ -401,7 +400,7 @@ pub const Connection = opaque {
             subject.ptr,
             queue_group.ptr,
             makeSubscriptionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         ));
 
         return status.toError() orelse sub;
@@ -425,7 +424,7 @@ pub const Connection = opaque {
             queue_group.ptr,
             timeout,
             makeSubscriptionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         ));
 
         return status.toError() orelse sub;
@@ -502,7 +501,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetTokenHandler(
             @ptrCast(self),
             makeTokenCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         )).raise();
     }
 
@@ -642,7 +641,7 @@ pub const ConnectionOptions = opaque {
             nats_c.natsOptions_SetCustomReconnectDelay(
                 @ptrCast(self),
                 makeReconnectDelayCallbackThunk(T, callback),
-                @constCast(@ptrCast(userdata)),
+                thunkhelper.opaqueFromUserdata(userdata),
             ),
         ).raise();
     }
@@ -669,7 +668,7 @@ pub const ConnectionOptions = opaque {
             nats_c.natsOptions_SetErrorHandler(
                 @ptrCast(self),
                 makeErrorHandlerCallbackThunk(T, callback),
-                @constCast(@ptrCast(userdata)),
+                thunkhelper.opaqueFromUserdata(userdata),
             ),
         ).raise();
     }
@@ -683,7 +682,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         )).raise();
     }
 
@@ -696,7 +695,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         )).raise();
     }
 
@@ -709,7 +708,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         )).raise();
     }
 
@@ -722,7 +721,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         )).raise();
     }
 
@@ -735,7 +734,7 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetClosedCB(
             @ptrCast(self),
             makeConnectionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         )).raise();
     }
 
@@ -746,12 +745,12 @@ pub const ConnectionOptions = opaque {
         comptime attach_callback: *const AttachEventLoopCallbackSignature(T, L),
         comptime read_callback: *const AttachEventLoopCallbackSignature(T),
         comptime write_callback: *const AttachEventLoopCallbackSignature(T),
-        comptime detach_callback: *const thunk.SimpleCallbackSignature(T),
+        comptime detach_callback: *const thunkhelper.SimpleCallbackSignature(T),
         loop: L,
     ) Error!void {
         return Status.fromInt(nats_c.natsOptions_SetEventLoop(
             @ptrCast(self),
-            @constCast(@ptrCast(loop)),
+            thunkhelper.opaqueFromUserdata(loop),
             makeAttachEventLoopCallbackThunk(T, L, attach_callback),
             makeEventLoopAddRemoveCallbackThunk(T, read_callback),
             makeEventLoopAddRemoveCallbackThunk(T, write_callback),
@@ -820,7 +819,7 @@ pub const ConnectionOptions = opaque {
             @ptrCast(self),
             retry,
             makeConnectionCallbackThunk(T, callback),
-            @constCast(@ptrCast(userdata)),
+            thunkhelper.opaqueFromUserdata(userdata),
         )).raise();
     }
 
@@ -836,9 +835,9 @@ pub const ConnectionOptions = opaque {
         return Status.fromInt(nats_c.natsOptions_SetUserCredentialsCallbacks(
             @ptrCast(self),
             makeJwtHandlerCallbackThunk(T, jwt_callback),
-            @constCast(@ptrCast(jwt_userdata)),
+            thunkhelper.opaqueFromUserdata(jwt_userdata),
             makeSignatureHandlerCallbackThunk(U, sig_callback),
-            @constCast(@ptrCast(sig_userdata)),
+            thunkhelper.opaqueFromUserdata(sig_userdata),
         )).raise();
     }
 
@@ -876,7 +875,7 @@ pub const ConnectionOptions = opaque {
             @ptrCast(self),
             pub_key.ptr,
             makeSignatureHandlerCallbackThunk(T, sig_callback),
-            @constCast(@ptrCast(sig_userdata)),
+            thunkhelper.opaqueFromUserdata(sig_userdata),
         )).raise();
     }
 
@@ -917,18 +916,17 @@ pub const ConnectionOptions = opaque {
 
 const TokenCallback = fn (?*anyopaque) callconv(.C) [*c]const u8;
 
-pub fn TokenCallbackSignature(comptime T: type) type {
-    return fn (T) [:0]const u8;
+pub fn TokenCallbackSignature(comptime UDT: type) type {
+    return fn (UDT) [:0]const u8;
 }
 
 fn makeTokenCallbackThunk(
-    comptime T: type,
-    comptime callback: *const TokenCallbackSignature(T),
+    comptime UDT: type,
+    comptime callback: *const TokenCallbackSignature(UDT),
 ) *const TokenCallback {
-    comptime checkUserDataType(T);
     return struct {
         fn thunk(userdata: ?*anyopaque) callconv(.C) [*c]const u8 {
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
+            const data = thunkhelper.userdataFromOpaque(UDT, userdata);
             return callback(data).ptr;
         }
     }.thunk;
@@ -936,19 +934,18 @@ fn makeTokenCallbackThunk(
 
 const ConnectionCallback = fn (?*nats_c.natsConnection, ?*anyopaque) callconv(.C) void;
 
-pub fn ConnectionCallbackSignature(comptime T: type) type {
-    return fn (T, *Connection) void;
+pub fn ConnectionCallbackSignature(comptime UDT: type) type {
+    return fn (UDT, *Connection) void;
 }
 
 fn makeConnectionCallbackThunk(
-    comptime T: type,
-    comptime callback: *const ConnectionCallbackSignature(T),
+    comptime UDT: type,
+    comptime callback: *const ConnectionCallbackSignature(UDT),
 ) *const ConnectionCallback {
-    comptime checkUserDataType(T);
     return struct {
         fn thunk(conn: ?*nats_c.natsConnection, userdata: ?*anyopaque) callconv(.C) void {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
+            const data = thunkhelper.userdataFromOpaque(UDT, userdata);
             callback(data, connection);
         }
     }.thunk;
@@ -956,15 +953,14 @@ fn makeConnectionCallbackThunk(
 
 const ReconnectDelayCallback = fn (?*nats_c.natsConnection, c_int, ?*anyopaque) callconv(.C) i64;
 
-pub fn ReconnectDelayCallbackSignature(comptime T: type) type {
-    return fn (T, *Connection, c_int) i64;
+pub fn ReconnectDelayCallbackSignature(comptime UDT: type) type {
+    return fn (UDT, *Connection, c_int) i64;
 }
 
 fn makeReconnectDelayCallbackThunk(
-    comptime T: type,
-    comptime callback: *const ReconnectDelayCallbackSignature(T),
+    comptime UDT: type,
+    comptime callback: *const ReconnectDelayCallbackSignature(UDT),
 ) *const ReconnectDelayCallback {
-    comptime checkUserDataType(T);
     return struct {
         fn thunk(
             conn: ?*nats_c.natsConnection,
@@ -972,7 +968,7 @@ fn makeReconnectDelayCallbackThunk(
             userdata: ?*anyopaque,
         ) callconv(.C) i64 {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
+            const data = thunkhelper.userdataFromOpaque(UDT, userdata);
             return callback(data, connection, attempts);
         }
     }.thunk;
@@ -985,15 +981,14 @@ const ErrorHandlerCallback = fn (
     ?*anyopaque,
 ) callconv(.C) void;
 
-pub fn ErrorHandlerCallbackSignature(comptime T: type) type {
-    return fn (T, *Connection, *Subscription, Status) void;
+pub fn ErrorHandlerCallbackSignature(comptime UDT: type) type {
+    return fn (UDT, *Connection, *Subscription, Status) void;
 }
 
 fn makeErrorHandlerCallbackThunk(
-    comptime T: type,
-    comptime callback: *const ErrorHandlerCallbackSignature(T),
+    comptime UDT: type,
+    comptime callback: *const ErrorHandlerCallbackSignature(UDT),
 ) *const ErrorHandlerCallback {
-    comptime checkUserDataType(T);
     return struct {
         fn thunk(
             conn: ?*nats_c.natsConnection,
@@ -1003,8 +998,8 @@ fn makeErrorHandlerCallbackThunk(
         ) callconv(.C) void {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
             const subscription: *Subscription = if (sub) |s| @ptrCast(s) else unreachable;
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
 
+            const data = thunkhelper.userdataFromOpaque(UDT, userdata);
             callback(data, connection, subscription, Status.fromInt(status));
         }
     }.thunk;
@@ -1018,17 +1013,16 @@ const AttachEventLoopCallback = fn (
     nats_c.natsSock,
 ) callconv(.C) nats_c.natsStatus;
 
-pub fn AttachEventLoopCallbackSignature(comptime T: type, comptime L: type) type {
-    return fn (L, *Connection, c_int) anyerror!T;
+pub fn AttachEventLoopCallbackSignature(comptime UDT: type, comptime L: type) type {
+    return fn (L, *Connection, c_int) anyerror!UDT;
 }
 
 fn makeAttachEventLoopCallbackThunk(
-    comptime T: type,
+    comptime UDT: type,
     comptime L: type,
-    comptime callback: *const AttachEventLoopCallbackSignature(T, L),
+    comptime callback: *const AttachEventLoopCallbackSignature(UDT, L),
 ) *const ReconnectDelayCallback {
-    comptime checkUserDataType(T);
-    comptime checkUserDataType(L);
+    comptime thunkhelper.checkUserDataType(L);
     return struct {
         fn thunk(
             userdata: *?*anyopaque,
@@ -1037,10 +1031,12 @@ fn makeAttachEventLoopCallbackThunk(
             sock: ?*nats_c.natsSock,
         ) callconv(.C) nats_c.natsStatus {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
-            const ev_loop: L = if (loop) |l| @alignCast(@ptrCast(l)) else unreachable;
 
-            userdata.* = callback(ev_loop, connection, sock) catch |err|
+            const ev_loop = thunkhelper.userdataFromOpaque(L, loop);
+
+            const result = callback(ev_loop, connection, sock) catch |err|
                 return Status.fromError(err).toInt();
+            userdata.* = thunkhelper.opaqueFromUserdata(result);
 
             return nats_c.NATS_OK;
         }
@@ -1049,15 +1045,14 @@ fn makeAttachEventLoopCallbackThunk(
 
 const EventLoopAddRemoveCallback = fn (?*nats_c.natsConnection, c_int, ?*anyopaque) callconv(.C) nats_c.natsStatus;
 
-pub fn EventLoopAddRemoveCallbackSignature(comptime T: type) type {
-    return fn (T, *Connection, c_int) anyerror!void;
+pub fn EventLoopAddRemoveCallbackSignature(comptime UDT: type) type {
+    return fn (UDT, *Connection, c_int) anyerror!void;
 }
 
 fn makeEventLoopAddRemoveCallbackThunk(
-    comptime T: type,
-    comptime callback: *const EventLoopAddRemoveCallbackSignature(T),
+    comptime UDT: type,
+    comptime callback: *const EventLoopAddRemoveCallbackSignature(UDT),
 ) *const ReconnectDelayCallback {
-    comptime checkUserDataType(T);
     return struct {
         fn thunk(
             conn: ?*nats_c.natsConnection,
@@ -1065,7 +1060,7 @@ fn makeEventLoopAddRemoveCallbackThunk(
             userdata: ?*anyopaque,
         ) callconv(.C) nats_c.natsStatus {
             const connection: *Connection = if (conn) |c| @ptrCast(c) else unreachable;
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
+            const data = thunkhelper.userdataFromOpaque(UDT, userdata);
             callback(data, connection, attempts) catch |err|
                 return Status.fromError(err).toInt();
 
@@ -1076,21 +1071,21 @@ fn makeEventLoopAddRemoveCallbackThunk(
 
 const EventLoopDetachCallback = fn (?*anyopaque) callconv(.C) nats_c.natsStatus;
 
-pub fn EventLoopDetachCallbackSignature(comptime T: type) type {
-    return fn (T) anyerror!void;
+pub fn EventLoopDetachCallbackSignature(comptime UDT: type) type {
+    return fn (UDT) anyerror!void;
 }
 
 fn makeEventLoopDetachCallbackThunk(
-    comptime T: type,
-    comptime callback: *const EventLoopDetachCallbackSignature(T),
+    comptime UDT: type,
+    comptime callback: *const EventLoopDetachCallbackSignature(UDT),
 ) *const ReconnectDelayCallback {
-    comptime checkUserDataType(T);
     return struct {
         fn thunk(
             userdata: ?*anyopaque,
         ) callconv(.C) nats_c.natsStatus {
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
+            const data = thunkhelper.userdataFromOpaque(UDT, userdata);
             callback(data) catch |err| return Status.fromError(err).toInt();
+
             return nats_c.NATS_OK;
         }
     }.thunk;
@@ -1105,26 +1100,24 @@ pub const JwtResponseOrError = union(enum) {
     error_message: [:0]u8,
 };
 
-pub fn JwtHandlerCallbackSignature(comptime T: type) type {
-    return fn (T) JwtResponseOrError;
+pub fn JwtHandlerCallbackSignature(comptime UDT: type) type {
+    return fn (UDT) JwtResponseOrError;
 }
 
 fn makeJwtHandlerCallbackThunk(
-    comptime T: type,
-    comptime callback: *const JwtHandlerCallbackSignature(T),
+    comptime UDT: type,
+    comptime callback: *const JwtHandlerCallbackSignature(UDT),
 ) *const JwtHandlerCallback {
-    comptime checkUserDataType(T);
     return struct {
         fn thunk(
             jwt_out_raw: ?*?[*:0]u8,
             err_out_raw: ?*?[*:0]u8,
             userdata: ?*anyopaque,
         ) callconv(.C) nats_c.natsStatus {
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
             const err_out = err_out_raw orelse unreachable;
             const jwt_out = jwt_out_raw orelse unreachable;
 
-            switch (callback(data)) {
+            switch (callback(thunkhelper.userdataFromOpaque(UDT, userdata))) {
                 .jwt => |jwt| {
                     jwt_out.* = jwt.ptr;
                     return nats_c.NATS_OK;
@@ -1147,15 +1140,14 @@ pub const SignatureResponseOrError = union(enum) {
     error_message: [:0]u8,
 };
 
-pub fn SignatureHandlerCallbackSignature(comptime T: type) type {
-    return fn (T, [:0]const u8) SignatureResponseOrError;
+pub fn SignatureHandlerCallbackSignature(comptime UDT: type) type {
+    return fn (UDT, [:0]const u8) SignatureResponseOrError;
 }
 
 fn makeSignatureHandlerCallbackThunk(
-    comptime T: type,
-    comptime callback: *const SignatureHandlerCallbackSignature(T),
+    comptime UDT: type,
+    comptime callback: *const SignatureHandlerCallbackSignature(UDT),
 ) *const SignatureHandlerCallback {
-    comptime checkUserDataType(T);
     return struct {
         fn thunk(
             err_out_raw: ?*?[*:0]u8,
@@ -1164,12 +1156,12 @@ fn makeSignatureHandlerCallbackThunk(
             nonsense: ?[*:0]const u8,
             userdata: ?*anyopaque,
         ) callconv(.C) nats_c.natsStatus {
-            const data: T = if (userdata) |u| @alignCast(@ptrCast(u)) else unreachable;
             const nonce = nonsense orelse unreachable;
             const err_out = err_out_raw orelse unreachable;
             const sig_out = sig_out_raw orelse unreachable;
             const sig_len_out = sig_len_out_raw orelse unreachable;
 
+            const data = thunkhelper.userdataFromOpaque(UDT, userdata);
             switch (callback(data, std.mem.sliceTo(nonce, 0))) {
                 .signature => |sig| {
                     sig_out.* = sig.ptr;

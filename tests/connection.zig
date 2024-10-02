@@ -99,42 +99,46 @@ test "nats.Connection" {
     connection.drainTimeout(1000) catch {};
 }
 
-fn reconnectDelayHandler(userdata: *const u32, connection: *nats.Connection, attempts: c_int) i64 {
-    _ = userdata;
-    _ = connection;
-    _ = attempts;
+fn callbacks(comptime UDT: type) type {
+    return struct {
+        fn reconnectDelayHandler(userdata: UDT, connection: *nats.Connection, attempts: c_int) i64 {
+            _ = userdata;
+            _ = connection;
+            _ = attempts;
 
-    return 0;
-}
+            return 0;
+        }
 
-fn errorHandler(
-    userdata: *const u32,
-    connection: *nats.Connection,
-    subscription: *nats.Subscription,
-    status: nats.Status,
-) void {
-    _ = userdata;
-    _ = connection;
-    _ = subscription;
-    _ = status;
-}
+        fn errorHandler(
+            userdata: UDT,
+            connection: *nats.Connection,
+            subscription: *nats.Subscription,
+            status: nats.Status,
+        ) void {
+            _ = userdata;
+            _ = connection;
+            _ = subscription;
+            _ = status;
+        }
 
-fn connectionHandler(userdata: *const u32, connection: *nats.Connection) void {
-    _ = userdata;
-    _ = connection;
-}
+        fn connectionHandler(userdata: UDT, connection: *nats.Connection) void {
+            _ = userdata;
+            _ = connection;
+        }
 
-fn jwtHandler(userdata: *const u32) nats.JwtResponseOrError {
-    _ = userdata;
-    // return .{ .jwt = std.heap.raw_c_allocator.dupeZ(u8, "abcdef") catch @panic("no!") };
-    return .{ .error_message = std.heap.raw_c_allocator.dupeZ(u8, "dang") catch @panic("no!") };
-}
+        fn jwtHandler(userdata: UDT) nats.JwtResponseOrError {
+            _ = userdata;
+            // return .{ .jwt = std.heap.raw_c_allocator.dupeZ(u8, "abcdef") catch @panic("no!") };
+            return .{ .error_message = std.heap.raw_c_allocator.dupeZ(u8, "dang") catch @panic("no!") };
+        }
 
-fn signatureHandler(userdata: *const u32, nonce: [:0]const u8) nats.SignatureResponseOrError {
-    _ = userdata;
-    _ = nonce;
-    // return .{ .signature = std.heap.raw_c_allocator.dupe(u8, "01230123") catch @panic("no!") };
-    return .{ .error_message = std.heap.raw_c_allocator.dupeZ(u8, "whoops") catch @panic("no!") };
+        fn signatureHandler(userdata: UDT, nonce: [:0]const u8) nats.SignatureResponseOrError {
+            _ = userdata;
+            _ = nonce;
+            // return .{ .signature = std.heap.raw_c_allocator.dupe(u8, "01230123") catch @panic("no!") };
+            return .{ .error_message = std.heap.raw_c_allocator.dupeZ(u8, "whoops") catch @panic("no!") };
+        }
+    };
 }
 
 test "nats.ConnectionOptions" {
@@ -164,14 +168,26 @@ test "nats.ConnectionOptions" {
     try options.setMaxReconnect(10);
     try options.setReconnectWait(500);
     try options.setReconnectJitter(100, 200);
-    try options.setCustomReconnectDelay(*const u32, reconnectDelayHandler, &userdata);
+    try options.setCustomReconnectDelay(*const u32, callbacks(*const u32).reconnectDelayHandler, &userdata);
+    try options.setCustomReconnectDelay(void, callbacks(void).reconnectDelayHandler, {});
+    try options.setCustomReconnectDelay(?*const u32, callbacks(?*const u32).reconnectDelayHandler, null);
     try options.setReconnectBufSize(1024);
     try options.setMaxPendingMessages(50);
-    try options.setErrorHandler(*const u32, errorHandler, &userdata);
-    try options.setClosedCallback(*const u32, connectionHandler, &userdata);
-    try options.setDisconnectedCallback(*const u32, connectionHandler, &userdata);
-    try options.setDiscoveredServersCallback(*const u32, connectionHandler, &userdata);
-    try options.setLameDuckModeCallback(*const u32, connectionHandler, &userdata);
+    try options.setErrorHandler(*const u32, callbacks(*const u32).errorHandler, &userdata);
+    try options.setErrorHandler(void, callbacks(void).errorHandler, {});
+    try options.setErrorHandler(?*const u32, callbacks(?*const u32).errorHandler, null);
+    try options.setClosedCallback(*const u32, callbacks(*const u32).connectionHandler, &userdata);
+    try options.setClosedCallback(void, callbacks(void).connectionHandler, {});
+    try options.setClosedCallback(?*const u32, callbacks(?*const u32).connectionHandler, null);
+    try options.setDisconnectedCallback(*const u32, callbacks(*const u32).connectionHandler, &userdata);
+    try options.setDisconnectedCallback(void, callbacks(void).connectionHandler, {});
+    try options.setDisconnectedCallback(?*const u32, callbacks(?*const u32).connectionHandler, null);
+    try options.setDiscoveredServersCallback(*const u32, callbacks(*const u32).connectionHandler, &userdata);
+    try options.setDiscoveredServersCallback(void, callbacks(void).connectionHandler, {});
+    try options.setDiscoveredServersCallback(?*const u32, callbacks(?*const u32).connectionHandler, null);
+    try options.setLameDuckModeCallback(*const u32, callbacks(*const u32).connectionHandler, &userdata);
+    try options.setLameDuckModeCallback(void, callbacks(void).connectionHandler, {});
+    try options.setLameDuckModeCallback(?*const u32, callbacks(?*const u32).connectionHandler, null);
     try options.ignoreDiscoveredServers(true);
     try options.useGlobalMessageDelivery(false);
     try options.ipResolutionOrder(.ipv4_first);
@@ -179,8 +195,11 @@ test "nats.ConnectionOptions" {
     try options.useOldRequestStyle(false);
     try options.setFailRequestsOnDisconnect(true);
     try options.setNoEcho(true);
-    try options.setRetryOnFailedConnect(*const u32, connectionHandler, true, &userdata);
-    try options.setUserCredentialsCallbacks(*const u32, *const u32, jwtHandler, signatureHandler, &userdata, &userdata);
+    try options.setRetryOnFailedConnect(*const u32, callbacks(*const u32).connectionHandler, true, &userdata);
+    try options.setRetryOnFailedConnect(void, callbacks(void).connectionHandler, true, {});
+    try options.setRetryOnFailedConnect(?*const u32, callbacks(?*const u32).connectionHandler, true, null);
+    try options.setUserCredentialsCallbacks(*const u32, *const u32, callbacks(*const u32).jwtHandler, callbacks(*const u32).signatureHandler, &userdata, &userdata);
+    try options.setUserCredentialsCallbacks(void, void, callbacks(void).jwtHandler, callbacks(void).signatureHandler, {}, {});
     try options.setWriteDeadline(5);
     try options.disableNoResponders(true);
     try options.setCustomInboxPrefix("_FOOBOX");
